@@ -1,3 +1,3 @@
 # my-repository
-mi primer repositorio
-ete es mi readmi
+Mi proyecto final wheells
+
