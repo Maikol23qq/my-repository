@@ -23,4 +23,5 @@ export const API_AUTH_URL = `${API_BASE_URL}/api/auth`;
 export const API_ONBOARDING_URL = `${API_BASE_URL}/api/onboarding`;
 export const API_USER_URL = `${API_BASE_URL}/api/user`;
 export const API_TRIPS_URL = `${API_BASE_URL}/api/trips`;
+export const API_CHAT_URL = `${API_BASE_URL}/api/chat`;
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_USER_URL, API_TRIPS_URL } from "../config/api.js";
+import { API_USER_URL, API_TRIPS_URL, API_CHAT_URL } from "../config/api.js";
+import Chat from "../components/Chat.jsx";
 
 export default function DashboardConductor() {
   const navigate = useNavigate();
@@ -19,6 +20,8 @@ export default function DashboardConductor() {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [tripRequests, setTripRequests] = useState(null);
   const [editingTrip, setEditingTrip] = useState(null);
+  const [chatTrip, setChatTrip] = useState(null);
+  const [chatOtherUser, setChatOtherUser] = useState(null);
   const [editForm, setEditForm] = useState({
     from: "",
     to: "",
@@ -574,6 +577,21 @@ export default function DashboardConductor() {
                           >
                             Ver solicitudes ({pendingBookings.length})
                           </button>
+                          {acceptedBookings.length > 0 && (
+                            <button
+                              onClick={() => {
+                                const firstAccepted = acceptedBookings[0];
+                                const passenger = firstAccepted.passengerId;
+                                if (passenger) {
+                                  setChatOtherUser(passenger.nombre || 'Pasajero');
+                                  setChatTrip(trip._id);
+                                }
+                              }}
+                              className="bg-purple-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-purple-700 transition"
+                            >
+                              💬 Chat
+                            </button>
+                          )}
                           <button
                             onClick={() => openEditTrip(trip)}
                             disabled={loading}
@@ -826,6 +844,18 @@ export default function DashboardConductor() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Chat */}
+        {chatTrip && chatOtherUser && (
+          <Chat
+            tripId={chatTrip}
+            otherUserName={chatOtherUser}
+            onClose={() => {
+              setChatTrip(null);
+              setChatOtherUser(null);
+            }}
+          />
         )}
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { API_USER_URL, API_TRIPS_URL } from "../config/api.js";
+import { API_USER_URL, API_TRIPS_URL, API_CHAT_URL } from "../config/api.js";
+import Chat from "../components/Chat.jsx";
 
 export default function DashboardPasajero() {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ export default function DashboardPasajero() {
   const [error, setError] = useState("");
   const [userId, setUserId] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState({}); // { tripId: cantidad }
+  const [chatTrip, setChatTrip] = useState(null);
+  const [chatOtherUser, setChatOtherUser] = useState(null);
 
   // Obtener el nombre del usuario del localStorage
   const userName = localStorage.getItem("name") || "Usuario";
@@ -597,13 +600,26 @@ export default function DashboardPasajero() {
                               <div className="text-xs text-gray-500">
                                 ¡Tu solicitud fue aceptada!
                               </div>
-                              <button
-                                onClick={() => handleCancelBooking(trip._id)}
-                                disabled={loading}
-                                className="bg-red-600 text-white px-4 py-2 rounded-lg text-xs hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                Cancelar reserva
-                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    if (trip.driver) {
+                                      setChatOtherUser(trip.driver.nombre);
+                                      setChatTrip(trip._id);
+                                    }
+                                  }}
+                                  className="bg-purple-600 text-white px-4 py-2 rounded-lg text-xs hover:bg-purple-700 transition"
+                                >
+                                  💬 Chat
+                                </button>
+                                <button
+                                  onClick={() => handleCancelBooking(trip._id)}
+                                  disabled={loading}
+                                  className="bg-red-600 text-white px-4 py-2 rounded-lg text-xs hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
                             </div>
                           )}
                           {status === "pending" && (
