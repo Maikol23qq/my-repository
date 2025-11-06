@@ -82,6 +82,11 @@ export default function Auth() {
         console.log("📨 Respuesta completa del login:", data);
         
         if (!res.ok) {
+          // Manejar error 429 (Too Many Requests)
+          if (res.status === 429) {
+            const retryAfter = data.retryAfter || 60;
+            throw new Error(data.message || data.error || `Demasiados intentos. Por favor espera ${retryAfter} segundos antes de intentar nuevamente.`);
+          }
           // Si no tiene ningún rol completado, mostrar error y NO redirigir
           if (res.status === 403 && data?.mustCompleteRegistration) {
             throw new Error(data.error || "Debes completar el registro primero. Completa el onboarding antes de iniciar sesión.");
