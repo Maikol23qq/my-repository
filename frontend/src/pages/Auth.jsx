@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import passengerImg from "../assets/passenger.png";
 import driverImg from "../assets/driver.png";
+import { API_AUTH_URL } from "../config/api.js";
 
 export default function Auth() {
   const [isRegister, setIsRegister] = useState(false);
@@ -13,12 +14,6 @@ export default function Auth() {
   const [idUniversitario, setIdUniversitario] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-
-  const API_URL =
-    import.meta.env.VITE_API_URL ||
-    (import.meta.env.MODE === "production"
-      ? "https://wheells-backend-5dy4.onrender.com/api/auth"
-      : "http://localhost:5000/api/auth");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,7 +31,7 @@ export default function Auth() {
           role,
         });
 
-        const res = await fetch(`${API_URL}/register`, {
+        const res = await fetch(`${API_AUTH_URL}/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -77,7 +72,7 @@ export default function Auth() {
         // LOGIN - CON DEBUG
         console.log("🔐 Intentando login con:", { email, password });
         
-        const res = await fetch(`${API_URL}/login`, {
+        const res = await fetch(`${API_AUTH_URL}/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
@@ -87,8 +82,12 @@ export default function Auth() {
         console.log("📨 Respuesta completa del login:", data);
         
         if (!res.ok) {
-          if (res.status === 403 && data?.needOnboarding) {
-            // Redirigir a completar onboarding
+          // Si no tiene ningún rol completado, mostrar error y NO redirigir
+          if (res.status === 403 && data?.mustCompleteRegistration) {
+            throw new Error(data.error || "Debes completar el registro primero. Completa el onboarding antes de iniciar sesión.");
+          }
+          // Si necesita onboarding pero viene del registro, redirigir
+          if (res.status === 403 && data?.needOnboarding && !data?.mustCompleteRegistration) {
             const route = data.nextRoute || "/register-photo";
             const nextRole = data.preferredRole || "pasajero";
             navigate(route, { state: { role: nextRole } });
@@ -97,7 +96,7 @@ export default function Auth() {
           throw new Error(data.message || data.error || "Error al iniciar sesión");
         }
 
-        // Guardar token
+        // Guardar token y datos del usuario
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.role);
         localStorage.setItem("name", data.nombre);
@@ -105,7 +104,7 @@ export default function Auth() {
         console.log("🎯 Rol recibido del backend:", data.role);
         console.log("📍 Redirigiendo a:", data.role === "conductor" ? "/dashboard-conductor" : "/dashboard-pasajero");
 
-        // Redirigir según rol
+        // Redirigir según rol - SIEMPRE al dashboard correspondiente
         if (data.role === "conductor") {
           navigate("/dashboard-conductor");
         } else {
