@@ -16,6 +16,8 @@ export default function DashboardConductor() {
   const [myTrips, setMyTrips] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedTrip, setSelectedTrip] = useState(null);
+  const [tripRequests, setTripRequests] = useState(null);
 
   // Cargar mis viajes al iniciar
   useEffect(() => {
@@ -77,6 +79,78 @@ export default function DashboardConductor() {
       }
     } catch (e) {
       console.error("Error al cargar viajes:", e);
+    }
+  }
+
+  async function loadTripRequests(tripId) {
+    if (!token) return;
+    
+    try {
+      const res = await fetch(`${API_TRIPS_URL}/${tripId}/requests`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setTripRequests(data);
+        setSelectedTrip(tripId);
+      }
+    } catch (e) {
+      console.error("Error al cargar solicitudes:", e);
+      alert("Error al cargar solicitudes");
+    }
+  }
+
+  async function handleAcceptRequest(tripId, passengerId) {
+    if (!token) return;
+    
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_TRIPS_URL}/${tripId}/requests/${passengerId}/accept`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al aceptar solicitud');
+      }
+      
+      alert('✅ Solicitud aceptada');
+      await loadTripRequests(tripId);
+      await loadMyTrips();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRejectRequest(tripId, passengerId) {
+    if (!token) return;
+    
+    if (!confirm('¿Estás seguro de rechazar esta solicitud?')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_TRIPS_URL}/${tripId}/requests/${passengerId}/reject`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al rechazar solicitud');
+      }
+      
+      alert('Solicitud rechazada');
+      await loadTripRequests(tripId);
+      await loadMyTrips();
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -325,7 +399,11 @@ export default function DashboardConductor() {
           ) : (
             <div className="space-y-4">
               {myTrips.map(trip => {
-                const passengersCount = trip.seatsTotal - trip.seatsAvailable;
+                const acceptedBookings = trip.bookings?.filter(b => b.status === "accepted") || [];
+                const pendingBookings = trip.bookings?.filter(b => b.status === "pending") || [];
+                const passengersCount = acceptedBookings.length;
+                const availableSeats = trip.seatsTotal - passengersCount;
+                
                 return (
                   <div key={trip._id} className="bg-white rounded-2xl p-6 border border-gray-200 shadow">
                     <div className="flex justify-between items-start">
@@ -345,24 +423,37 @@ export default function DashboardConductor() {
                             minute: '2-digit' 
                           })}
                         </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600">Pasajeros reservados: </span>
+                        <div className="text-sm mb-2">
+                          <span className="text-gray-600">Pasajeros aceptados: </span>
                           <span className="font-semibold text-[#2A609E]">{passengersCount}</span>
                           <span className="text-gray-400"> / {trip.seatsTotal}</span>
                         </div>
+                        {pendingBookings.length > 0 && (
+                          <div className="text-sm mb-2">
+                            <span className="text-orange-600 font-semibold">
+                              ⏳ {pendingBookings.length} solicitud{pendingBookings.length > 1 ? 'es' : ''} pendiente{pendingBookings.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="text-right ml-4">
                         <div className="font-semibold text-2xl text-[#2A609E] mb-1">
                           ${trip.price}
                         </div>
                         <div className="text-sm text-gray-600 mb-2">
-                          {trip.seatsAvailable > 0 ? (
-                            <span className="text-green-600">✓ {trip.seatsAvailable} disponibles</span>
+                          {availableSeats > 0 ? (
+                            <span className="text-green-600">✓ {availableSeats} disponibles</span>
                           ) : (
                             <span className="text-red-600">✗ Lleno</span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <button
+                          onClick={() => loadTripRequests(trip._id)}
+                          className="mt-2 bg-[#2A609E] text-white px-4 py-2 rounded-xl text-sm hover:bg-[#224f84] transition"
+                        >
+                          Ver solicitudes ({pendingBookings.length})
+                        </button>
+                        <div className="text-xs text-gray-500 mt-2">
                           Creado: {new Date(trip.createdAt).toLocaleDateString('es-ES')}
                         </div>
                       </div>
@@ -373,6 +464,130 @@ export default function DashboardConductor() {
             </div>
           )}
         </div>
+
+        {/* Modal de solicitudes */}
+        {tripRequests && selectedTrip && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">Solicitudes de reserva</h3>
+                <button
+                  onClick={() => {
+                    setTripRequests(null);
+                    setSelectedTrip(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                <div className="font-semibold">{tripRequests.trip.from} → {tripRequests.trip.to}</div>
+                <div className="text-sm text-gray-600">
+                  {new Date(tripRequests.trip.departureTime).toLocaleString('es-ES')}
+                </div>
+                <div className="text-sm">
+                  Asientos disponibles: {tripRequests.trip.seatsAvailable} / {tripRequests.trip.seatsTotal}
+                </div>
+              </div>
+
+              {/* Solicitudes pendientes */}
+              {tripRequests.requests.pending.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-semibold mb-3 text-orange-600">⏳ Pendientes ({tripRequests.requests.pending.length})</h4>
+                  <div className="space-y-3">
+                    {tripRequests.requests.pending.map((request, idx) => {
+                      const passenger = request.passengerId;
+                      return (
+                        <div key={idx} className="border border-orange-200 bg-orange-50 rounded-lg p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-semibold">{passenger?.nombre || 'Usuario'}</div>
+                              <div className="text-sm text-gray-600">{passenger?.email}</div>
+                              {passenger?.telefono && (
+                                <div className="text-sm text-gray-600">📞 {passenger.telefono}</div>
+                              )}
+                              {passenger?.idUniversitario && (
+                                <div className="text-sm text-gray-600">🎓 ID: {passenger.idUniversitario}</div>
+                              )}
+                              <div className="text-xs text-gray-500 mt-1">
+                                Solicitado: {new Date(request.requestedAt).toLocaleString('es-ES')}
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleAcceptRequest(selectedTrip, passenger._id)}
+                                disabled={loading || tripRequests.trip.seatsAvailable <= 0}
+                                className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Aceptar
+                              </button>
+                              <button
+                                onClick={() => handleRejectRequest(selectedTrip, passenger._id)}
+                                disabled={loading}
+                                className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Rechazar
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Solicitudes aceptadas */}
+              {tripRequests.requests.accepted.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="font-semibold mb-3 text-green-600">✓ Aceptadas ({tripRequests.requests.accepted.length})</h4>
+                  <div className="space-y-2">
+                    {tripRequests.requests.accepted.map((request, idx) => {
+                      const passenger = request.passengerId;
+                      return (
+                        <div key={idx} className="border border-green-200 bg-green-50 rounded-lg p-3">
+                          <div className="font-semibold">{passenger?.nombre || 'Usuario'}</div>
+                          <div className="text-sm text-gray-600">{passenger?.email}</div>
+                          {passenger?.telefono && (
+                            <div className="text-sm text-gray-600">📞 {passenger.telefono}</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Solicitudes rechazadas */}
+              {tripRequests.requests.rejected.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3 text-red-600">✗ Rechazadas ({tripRequests.requests.rejected.length})</h4>
+                  <div className="space-y-2">
+                    {tripRequests.requests.rejected.map((request, idx) => {
+                      const passenger = request.passengerId;
+                      return (
+                        <div key={idx} className="border border-red-200 bg-red-50 rounded-lg p-3">
+                          <div className="font-semibold">{passenger?.nombre || 'Usuario'}</div>
+                          <div className="text-sm text-gray-600">{passenger?.email}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {tripRequests.requests.pending.length === 0 && 
+               tripRequests.requests.accepted.length === 0 && 
+               tripRequests.requests.rejected.length === 0 && (
+                <div className="text-center text-gray-500 py-8">
+                  No hay solicitudes para este viaje
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -113,15 +113,15 @@ export default function DashboardPasajero() {
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.error || 'No se pudo reservar');
+        throw new Error(data.error || 'No se pudo solicitar reserva');
       }
       
-      alert('✅ Reserva confirmada exitosamente');
+      alert('✅ Solicitud de reserva enviada. El conductor revisará tu solicitud.');
       
-      // Actualizar resultados y mis viajes
+      // Actualizar resultados
       setResults(results.map(trip => 
         trip._id === id 
-          ? { ...trip, seatsAvailable: trip.seatsAvailable - 1, booked: true }
+          ? { ...trip, requested: true }
           : trip
       ));
       await loadMyTrips();
@@ -258,56 +258,90 @@ export default function DashboardPasajero() {
             <div className="mb-10">
               <h3 className="text-xl font-bold mb-4">Viajes disponibles ({results.length})</h3>
               <div className="space-y-4">
-                {results.map(trip => (
-                  <div key={trip._id} className="bg-white rounded-2xl p-6 border border-gray-200 shadow hover:shadow-lg transition">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="font-semibold text-lg mb-2">{trip.from} → {trip.to}</div>
-                        <div className="text-sm text-gray-600 mb-1">
-                          📅 {new Date(trip.departureTime).toLocaleDateString('es-ES', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })}
+                {results.map(trip => {
+                  // Verificar si el usuario ya tiene una solicitud en este viaje
+                  const myRequest = trip.bookings?.find(b => {
+                    if (!b.passengerId) return false;
+                    const passengerId = b.passengerId._id || b.passengerId;
+                    return passengerId?.toString() === userId || passengerId?.toString() === localStorage.getItem('userId');
+                  });
+                  
+                  return (
+                    <div key={trip._id} className="bg-white rounded-2xl p-6 border border-gray-200 shadow hover:shadow-lg transition">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="font-semibold text-lg mb-2">{trip.from} → {trip.to}</div>
+                          {trip.driver && (
+                            <div className="text-sm text-gray-600 mb-1">
+                              Conductor: {trip.driver.nombre}
+                            </div>
+                          )}
+                          <div className="text-sm text-gray-600 mb-1">
+                            📅 {new Date(trip.departureTime).toLocaleDateString('es-ES', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            🕐 {new Date(trip.departureTime).toLocaleTimeString('es-ES', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600">
-                          🕐 {new Date(trip.departureTime).toLocaleTimeString('es-ES', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </div>
-                      </div>
-                      <div className="text-right ml-4">
-                        <div className="font-semibold text-2xl text-[#2A609E] mb-1">
-                          ${trip.price}
-                        </div>
-                        <div className="text-sm text-gray-600 mb-3">
-                          {trip.seatsAvailable > 0 ? (
-                            <span className="text-green-600">✓ {trip.seatsAvailable} asientos disponibles</span>
+                        <div className="text-right ml-4">
+                          <div className="font-semibold text-2xl text-[#2A609E] mb-1">
+                            ${trip.price}
+                          </div>
+                          <div className="text-sm text-gray-600 mb-3">
+                            {trip.seatsAvailable > 0 ? (
+                              <span className="text-green-600">✓ {trip.seatsAvailable} asientos disponibles</span>
+                            ) : (
+                              <span className="text-red-600">✗ Sin asientos</span>
+                            )}
+                          </div>
+                          {myRequest ? (
+                            <div className="text-sm">
+                              {myRequest.status === "pending" && (
+                                <span className="text-orange-600 font-semibold">⏳ Solicitud pendiente</span>
+                              )}
+                              {myRequest.status === "accepted" && (
+                                <span className="text-green-600 font-semibold">✓ Aceptado</span>
+                              )}
+                              {myRequest.status === "rejected" && (
+                                <button 
+                                  onClick={()=>bookTrip(trip._id)} 
+                                  disabled={loading}
+                                  className="text-[#2A609E] underline text-sm"
+                                >
+                                  Volver a solicitar
+                                </button>
+                              )}
+                            </div>
                           ) : (
-                            <span className="text-red-600">✗ Sin asientos</span>
+                            <button 
+                              onClick={()=>bookTrip(trip._id)} 
+                              disabled={trip.seatsAvailable <= 0 || loading}
+                              className="bg-[#2A609E] text-white px-6 py-2 rounded-xl hover:bg-[#224f84] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {loading ? "Enviando..." : "Solicitar reserva"}
+                            </button>
                           )}
                         </div>
-                        <button 
-                          onClick={()=>bookTrip(trip._id)} 
-                          disabled={trip.seatsAvailable <= 0 || trip.booked || loading}
-                          className="bg-[#2A609E] text-white px-6 py-2 rounded-xl hover:bg-[#224f84] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {trip.booked ? "Ya reservado" : loading ? "Reservando..." : "Reservar"}
-                        </button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Mis reservas */}
+          {/* Mis solicitudes */}
           <div className="space-y-4 mt-10">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">Mis viajes reservados ({myTrips.length})</h3>
+              <h3 className="text-xl font-bold">Mis solicitudes de viaje ({myTrips.length})</h3>
               <button 
                 onClick={loadMyTrips} 
                 className="text-blue-600 underline text-sm hover:text-blue-800"
@@ -318,42 +352,70 @@ export default function DashboardPasajero() {
             
             {myTrips.length === 0 ? (
               <div className="bg-white rounded-2xl p-8 border border-gray-200 text-center">
-                <p className="text-gray-500">Aún no has reservado ningún viaje.</p>
+                <p className="text-gray-500">Aún no has solicitado ningún viaje.</p>
                 <p className="text-gray-400 text-sm mt-2">Busca viajes disponibles arriba para comenzar.</p>
               </div>
             ) : (
               <div className="space-y-4">
-                {myTrips.map(trip => (
-                  <div key={trip._id} className="bg-white rounded-2xl p-6 border border-gray-200 shadow">
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="font-semibold text-lg mb-2">{trip.from} → {trip.to}</div>
-                        <div className="text-sm text-gray-600 mb-1">
-                          📅 {new Date(trip.departureTime).toLocaleDateString('es-ES', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })}
+                {myTrips.map(trip => {
+                  const status = trip.myBookingStatus;
+                  const statusLabels = {
+                    pending: { text: "Pendiente", color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
+                    accepted: { text: "Aceptado", color: "text-green-600", bg: "bg-green-50", border: "border-green-200" },
+                    rejected: { text: "Rechazado", color: "text-red-600", bg: "bg-red-50", border: "border-red-200" }
+                  };
+                  const statusInfo = statusLabels[status] || statusLabels.pending;
+                  
+                  return (
+                    <div key={trip._id} className={`bg-white rounded-2xl p-6 border-2 ${statusInfo.border} shadow`}>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="font-semibold text-lg mb-2">{trip.from} → {trip.to}</div>
+                          {trip.driver && (
+                            <div className="text-sm text-gray-600 mb-1">
+                              Conductor: {trip.driver.nombre}
+                            </div>
+                          )}
+                          <div className="text-sm text-gray-600 mb-1">
+                            📅 {new Date(trip.departureTime).toLocaleDateString('es-ES', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            🕐 {new Date(trip.departureTime).toLocaleTimeString('es-ES', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </div>
                         </div>
-                        <div className="text-sm text-gray-600">
-                          🕐 {new Date(trip.departureTime).toLocaleTimeString('es-ES', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </div>
-                      </div>
-                      <div className="text-right ml-4">
-                        <div className="font-semibold text-2xl text-[#2A609E] mb-1">
-                          ${trip.price}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          Estado: <span className="text-green-600 font-semibold">Reservado</span>
+                        <div className="text-right ml-4">
+                          <div className="font-semibold text-2xl text-[#2A609E] mb-1">
+                            ${trip.price}
+                          </div>
+                          <div className={`text-sm font-semibold ${statusInfo.color} mb-2`}>
+                            {status === "pending" && "⏳"}
+                            {status === "accepted" && "✓"}
+                            {status === "rejected" && "✗"}
+                            {" "}{statusInfo.text}
+                          </div>
+                          {status === "accepted" && (
+                            <div className="text-xs text-gray-500">
+                              ¡Tu solicitud fue aceptada!
+                            </div>
+                          )}
+                          {status === "rejected" && (
+                            <div className="text-xs text-gray-500">
+                              El conductor rechazó tu solicitud
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

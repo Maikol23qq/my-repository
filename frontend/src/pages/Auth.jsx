@@ -105,6 +105,9 @@ export default function Auth() {
         localStorage.setItem("token", data.token);
         localStorage.setItem("role", data.role);
         localStorage.setItem("name", data.nombre);
+        if (data.userId) {
+          localStorage.setItem("userId", data.userId.toString());
+        }
 
         console.log("🎯 Rol recibido del backend:", data.role);
         console.log("📍 Redirigiendo a:", data.role === "conductor" ? "/dashboard-conductor" : "/dashboard-pasajero");
