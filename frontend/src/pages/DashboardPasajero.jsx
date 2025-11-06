@@ -645,6 +645,18 @@ export default function DashboardPasajero() {
             )}
           </div>
         </div>
+
+        {/* Chat */}
+        {chatTrip && chatOtherUser && (
+          <Chat
+            tripId={chatTrip}
+            otherUserName={chatOtherUser}
+            onClose={() => {
+              setChatTrip(null);
+              setChatOtherUser(null);
+            }}
+          />
+        )}
       </div>
     </div>
   );
