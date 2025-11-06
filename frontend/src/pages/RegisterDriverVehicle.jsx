@@ -14,29 +14,60 @@ export default function RegisterDriverVehicle() {
   const [anio, setAnio] = useState("");
   const [placa, setPlaca] = useState("");
 
+  const optimizeImage = (file, callback) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convertir a base64 con calidad reducida
+        const base64 = canvas.toDataURL('image/jpeg', 0.7);
+        callback(base64);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handlePhotoVehiculoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setPhotoVehiculo(URL.createObjectURL(file));
-      // Convertir a base64
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoVehiculoBase64(reader.result);
-      };
-      reader.readAsDataURL(file);
+      optimizeImage(file, (base64) => {
+        setPhotoVehiculoBase64(base64);
+        setPhotoVehiculo(base64); // Usar la imagen optimizada para preview
+      });
     }
   };
 
   const handlePhotoPlacaUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setPhotoPlaca(URL.createObjectURL(file));
-      // Convertir a base64
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPlacaBase64(reader.result);
-      };
-      reader.readAsDataURL(file);
+      optimizeImage(file, (base64) => {
+        setPhotoPlacaBase64(base64);
+        setPhotoPlaca(base64); // Usar la imagen optimizada para preview
+      });
     }
   };
 
