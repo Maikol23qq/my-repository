@@ -12,6 +12,7 @@ export default function DashboardPasajero() {
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
+  const [userId, setUserId] = useState(null);
 
   // Obtener el nombre del usuario del localStorage
   const userName = localStorage.getItem("name") || "Usuario";
@@ -19,6 +20,10 @@ export default function DashboardPasajero() {
 
   // Cargar mis viajes reservados al iniciar
   useEffect(() => {
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId) {
+      setUserId(storedUserId);
+    }
     loadMyTrips();
   }, []);
 
