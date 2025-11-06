@@ -13,6 +13,7 @@ export default function DashboardPasajero() {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
   const [userId, setUserId] = useState(null);
+  const [selectedSeats, setSelectedSeats] = useState({}); // { tripId: cantidad }
 
   // Obtener el nombre del usuario del localStorage
   const userName = localStorage.getItem("name") || "Usuario";
@@ -102,10 +103,21 @@ export default function DashboardPasajero() {
     }
   }
 
-  async function bookTrip(id) {
+  async function bookTrip(id, seats = 1) {
     if (!token) {
       alert("Sesión expirada. Por favor inicia sesión nuevamente.");
       navigate("/auth");
+      return;
+    }
+
+    if (!seats || seats < 1) {
+      alert("Por favor selecciona al menos 1 asiento");
+      return;
+    }
+
+    const trip = results.find(t => t._id === id);
+    if (trip && seats > trip.seatsAvailable) {
+      alert(`Solo hay ${trip.seatsAvailable} asiento${trip.seatsAvailable !== 1 ? 's' : ''} disponible${trip.seatsAvailable !== 1 ? 's' : ''}`);
       return;
     }
 
@@ -113,7 +125,11 @@ export default function DashboardPasajero() {
       setLoading(true);
       const res = await fetch(`${API_TRIPS_URL}/${id}/book`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ seats: Number(seats) })
       });
       const data = await res.json();
       
@@ -121,7 +137,10 @@ export default function DashboardPasajero() {
         throw new Error(data.error || 'No se pudo solicitar reserva');
       }
       
-      alert('✅ Solicitud de reserva enviada. El conductor revisará tu solicitud.');
+      alert(`✅ Solicitud de reserva por ${seats} asiento${seats > 1 ? 's' : ''} enviada. El conductor revisará tu solicitud.`);
+      
+      // Limpiar selección de asientos para este viaje
+      setSelectedSeats({ ...selectedSeats, [id]: 1 });
       
       // Actualizar resultados
       setResults(results.map(trip => 
@@ -310,14 +329,28 @@ export default function DashboardPasajero() {
                           {myRequest ? (
                             <div className="text-sm">
                               {myRequest.status === "pending" && (
-                                <span className="text-orange-600 font-semibold">⏳ Solicitud pendiente</span>
+                                <div>
+                                  <span className="text-orange-600 font-semibold">⏳ Solicitud pendiente</span>
+                                  {myRequest.seats > 1 && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {myRequest.seats} asientos solicitados
+                                    </div>
+                                  )}
+                                </div>
                               )}
                               {myRequest.status === "accepted" && (
-                                <span className="text-green-600 font-semibold">✓ Aceptado</span>
+                                <div>
+                                  <span className="text-green-600 font-semibold">✓ Aceptado</span>
+                                  {myRequest.seats > 1 && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {myRequest.seats} asientos confirmados
+                                    </div>
+                                  )}
+                                </div>
                               )}
                               {myRequest.status === "rejected" && (
                                 <button 
-                                  onClick={()=>bookTrip(trip._id)} 
+                                  onClick={()=>bookTrip(trip._id, selectedSeats[trip._id] || 1)} 
                                   disabled={loading}
                                   className="text-[#2A609E] underline text-sm"
                                 >
@@ -326,13 +359,28 @@ export default function DashboardPasajero() {
                               )}
                             </div>
                           ) : (
-                            <button 
-                              onClick={()=>bookTrip(trip._id)} 
-                              disabled={trip.seatsAvailable <= 0 || loading}
-                              className="bg-[#2A609E] text-white px-6 py-2 rounded-xl hover:bg-[#224f84] transition disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {loading ? "Enviando..." : "Solicitar reserva"}
-                            </button>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <label className="text-xs text-gray-600">Asientos:</label>
+                                <select
+                                  value={selectedSeats[trip._id] || 1}
+                                  onChange={(e) => setSelectedSeats({ ...selectedSeats, [trip._id]: Number(e.target.value) })}
+                                  className="border rounded px-2 py-1 text-sm w-20"
+                                  disabled={loading}
+                                >
+                                  {Array.from({ length: Math.min(trip.seatsAvailable || 1, 10) }, (_, i) => i + 1).map(num => (
+                                    <option key={num} value={num}>{num}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <button 
+                                onClick={()=>bookTrip(trip._id, selectedSeats[trip._id] || 1)} 
+                                disabled={trip.seatsAvailable <= 0 || loading}
+                                className="bg-[#2A609E] text-white px-6 py-2 rounded-xl hover:bg-[#224f84] transition disabled:opacity-50 disabled:cursor-not-allowed w-full"
+                              >
+                                {loading ? "Enviando..." : "Solicitar reserva"}
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>

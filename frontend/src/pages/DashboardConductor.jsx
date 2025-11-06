@@ -511,6 +511,9 @@ export default function DashboardConductor() {
                               {passenger?.idUniversitario && (
                                 <div className="text-sm text-gray-600">🎓 ID: {passenger.idUniversitario}</div>
                               )}
+                              <div className="text-sm font-semibold text-[#2A609E] mt-1">
+                                {request.seats || 1} asiento{(request.seats || 1) > 1 ? 's' : ''} solicitado{(request.seats || 1) > 1 ? 's' : ''}
+                              </div>
                               <div className="text-xs text-gray-500 mt-1">
                                 Solicitado: {new Date(request.requestedAt).toLocaleString('es-ES')}
                               </div>
@@ -553,6 +556,9 @@ export default function DashboardConductor() {
                           {passenger?.telefono && (
                             <div className="text-sm text-gray-600">📞 {passenger.telefono}</div>
                           )}
+                          <div className="text-sm font-semibold text-green-700 mt-1">
+                            {request.seats || 1} asiento{(request.seats || 1) > 1 ? 's' : ''} confirmado{(request.seats || 1) > 1 ? 's' : ''}
+                          </div>
                         </div>
                       );
                     })}
