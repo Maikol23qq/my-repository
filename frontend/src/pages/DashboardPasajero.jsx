@@ -19,14 +19,36 @@ export default function DashboardPasajero() {
   const userName = localStorage.getItem("name") || "Usuario";
   const token = localStorage.getItem('token');
 
-  // Cargar mis viajes reservados al iniciar
+  // Cargar mis viajes reservados y todos los viajes disponibles al iniciar
   useEffect(() => {
     const storedUserId = localStorage.getItem('userId');
     if (storedUserId) {
       setUserId(storedUserId);
     }
     loadMyTrips();
+    loadAllTrips(); // Cargar todos los viajes disponibles automáticamente
   }, []);
+
+  async function loadAllTrips() {
+    if (!token) return;
+    
+    try {
+      setSearching(true);
+      // Cargar todos los viajes disponibles sin filtros
+      const res = await fetch(`${API_TRIPS_URL}/search`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setResults(data.trips || []);
+      }
+    } catch (e) {
+      console.error("Error al cargar viajes:", e);
+    } finally {
+      setSearching(false);
+    }
+  }
 
   async function switchTo(role) {
     try {
@@ -315,10 +337,19 @@ export default function DashboardPasajero() {
             </button>
           </div>
 
-          {/* Resultados de búsqueda */}
+          {/* Resultados de búsqueda / Viajes disponibles */}
           {results.length > 0 && (
             <div className="mb-10">
-              <h3 className="text-xl font-bold mb-4">Viajes disponibles ({results.length})</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">Viajes disponibles ({results.length})</h3>
+                <button 
+                  onClick={loadAllTrips} 
+                  className="text-blue-600 underline text-sm hover:text-blue-800"
+                  disabled={searching}
+                >
+                  {searching ? "Cargando..." : "Actualizar"}
+                </button>
+              </div>
               <div className="space-y-4">
                 {results.map(trip => {
                   // Verificar si el usuario ya tiene una solicitud en este viaje
