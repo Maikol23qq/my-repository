@@ -22,6 +22,7 @@ export default function DashboardConductor() {
   const [editingTrip, setEditingTrip] = useState(null);
   const [chatTrip, setChatTrip] = useState(null);
   const [chatOtherUser, setChatOtherUser] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [editForm, setEditForm] = useState({
     from: "",
     to: "",
@@ -31,10 +32,26 @@ export default function DashboardConductor() {
     seats: 1
   });
 
-  // Cargar mis viajes al iniciar
+  // Cargar mis viajes y datos del usuario al iniciar
   useEffect(() => {
     loadMyTrips();
+    loadUserData();
   }, []);
+
+  async function loadUserData() {
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_USER_URL}/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUserData(data);
+      }
+    } catch (e) {
+      console.error("Error al cargar datos del usuario:", e);
+    }
+  }
 
   async function switchTo(role) {
     try {
