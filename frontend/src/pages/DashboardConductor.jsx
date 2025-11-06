@@ -528,10 +528,28 @@ export default function DashboardConductor() {
                 const availableSeats = trip.seatsTotal - totalAcceptedSeats;
                 
                 return (
-                  <div key={trip._id} className="bg-white rounded-2xl p-6 border border-gray-200 shadow">
+                    <div key={trip._id} className="bg-white rounded-2xl p-6 border border-gray-200 shadow">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <div className="font-semibold text-lg mb-2">{trip.from} → {trip.to}</div>
+                        <div className="flex items-center gap-2 mb-2">
+                          {trip.driverId && trip.driverId.photoUrl && (
+                            <img 
+                              src={trip.driverId.photoUrl} 
+                              alt="Tu foto"
+                              className="w-10 h-10 rounded-full object-cover border-2 border-[#2A609E]"
+                            />
+                          )}
+                          <div className="font-semibold text-lg">{trip.from} → {trip.to}</div>
+                        </div>
+                        {trip.vehicle?.photoUrl && (
+                          <div className="mb-2">
+                            <img 
+                              src={trip.vehicle.photoUrl} 
+                              alt="Vehículo"
+                              className="w-20 h-14 rounded object-cover border border-gray-300"
+                            />
+                          </div>
+                        )}
                         <div className="text-sm text-gray-600 mb-1">
                           📅 {new Date(trip.departureTime).toLocaleDateString('es-ES', { 
                             weekday: 'long', 
@@ -656,20 +674,29 @@ export default function DashboardConductor() {
                       return (
                         <div key={idx} className="border border-orange-200 bg-orange-50 rounded-lg p-4">
                           <div className="flex justify-between items-start">
-                            <div>
-                              <div className="font-semibold">{passenger?.nombre || 'Usuario'}</div>
-                              <div className="text-sm text-gray-600">{passenger?.email}</div>
-                              {passenger?.telefono && (
-                                <div className="text-sm text-gray-600">📞 {passenger.telefono}</div>
+                            <div className="flex items-start gap-3">
+                              {passenger?.photoUrl && (
+                                <img 
+                                  src={passenger.photoUrl} 
+                                  alt={passenger.nombre}
+                                  className="w-12 h-12 rounded-full object-cover border-2 border-orange-300"
+                                />
                               )}
-                              {passenger?.idUniversitario && (
-                                <div className="text-sm text-gray-600">🎓 ID: {passenger.idUniversitario}</div>
-                              )}
-                              <div className="text-sm font-semibold text-[#2A609E] mt-1">
-                                {request.seats || 1} asiento{(request.seats || 1) > 1 ? 's' : ''} solicitado{(request.seats || 1) > 1 ? 's' : ''}
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                Solicitado: {new Date(request.requestedAt).toLocaleString('es-ES')}
+                              <div>
+                                <div className="font-semibold">{passenger?.nombre || 'Usuario'}</div>
+                                <div className="text-sm text-gray-600">{passenger?.email}</div>
+                                {passenger?.telefono && (
+                                  <div className="text-sm text-gray-600">📞 {passenger.telefono}</div>
+                                )}
+                                {passenger?.idUniversitario && (
+                                  <div className="text-sm text-gray-600">🎓 ID: {passenger.idUniversitario}</div>
+                                )}
+                                <div className="text-sm font-semibold text-[#2A609E] mt-1">
+                                  {request.seats || 1} asiento{(request.seats || 1) > 1 ? 's' : ''} solicitado{(request.seats || 1) > 1 ? 's' : ''}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Solicitado: {new Date(request.requestedAt).toLocaleString('es-ES')}
+                                </div>
                               </div>
                             </div>
                             <div className="flex gap-2">
@@ -705,13 +732,24 @@ export default function DashboardConductor() {
                       const passenger = request.passengerId;
                       return (
                         <div key={idx} className="border border-green-200 bg-green-50 rounded-lg p-3">
-                          <div className="font-semibold">{passenger?.nombre || 'Usuario'}</div>
-                          <div className="text-sm text-gray-600">{passenger?.email}</div>
-                          {passenger?.telefono && (
-                            <div className="text-sm text-gray-600">📞 {passenger.telefono}</div>
-                          )}
-                          <div className="text-sm font-semibold text-green-700 mt-1">
-                            {request.seats || 1} asiento{(request.seats || 1) > 1 ? 's' : ''} confirmado{(request.seats || 1) > 1 ? 's' : ''}
+                          <div className="flex items-center gap-2">
+                            {passenger?.photoUrl && (
+                              <img 
+                                src={passenger.photoUrl} 
+                                alt={passenger.nombre}
+                                className="w-10 h-10 rounded-full object-cover border-2 border-green-300"
+                              />
+                            )}
+                            <div>
+                              <div className="font-semibold">{passenger?.nombre || 'Usuario'}</div>
+                              <div className="text-sm text-gray-600">{passenger?.email}</div>
+                              {passenger?.telefono && (
+                                <div className="text-sm text-gray-600">📞 {passenger.telefono}</div>
+                              )}
+                              <div className="text-sm font-semibold text-green-700 mt-1">
+                                {request.seats || 1} asiento{(request.seats || 1) > 1 ? 's' : ''} confirmado{(request.seats || 1) > 1 ? 's' : ''}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       );
