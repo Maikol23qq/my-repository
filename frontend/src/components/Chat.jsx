@@ -29,6 +29,7 @@ export default function Chat({ tripId, otherUserName, onClose }) {
     if (!token || !tripId) return;
     
     try {
+      setLoading(true);
       const res = await fetch(`${API_CHAT_URL}/trips/${tripId}/messages`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -40,9 +41,13 @@ export default function Chat({ tripId, otherUserName, onClose }) {
         if (data.messages && data.messages.length > 0) {
           markAsRead();
         }
+      } else {
+        console.error("Error al cargar mensajes:", data.error);
       }
     } catch (e) {
       console.error("Error al cargar mensajes:", e);
+    } finally {
+      setLoading(false);
     }
   }
 
