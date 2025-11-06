@@ -11,7 +11,7 @@ export default function Landing() {
 
       {/* Cuerpo principal */}
       <main className="flex flex-col items-center text-center px-6 md:px-20">
-        <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6">Wheells</h1>
+        <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6">Wheels</h1>
 
         <h3 className="text-3xl font-bold tracking-wide">
           Comparte tu ruta, ahorra y llega seguro.

@@ -1,6 +1,6 @@
 # Guía de Despliegue - Frontend
 
-Esta guía te ayudará a desplegar el frontend de Wheells en diferentes plataformas.
+Esta guía te ayudará a desplegar el frontend de Wheels en diferentes plataformas.
 
 ## 📋 Requisitos Previos
 
