@@ -338,7 +338,7 @@ export default function DashboardPasajero() {
           </div>
 
           {/* Resultados de búsqueda / Viajes disponibles */}
-          {results.length > 0 && (
+          {results.length > 0 ? (
             <div className="mb-10">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold">Viajes disponibles ({results.length})</h3>
@@ -458,6 +458,22 @@ export default function DashboardPasajero() {
                 })}
               </div>
             </div>
+          ) : (
+            !searching && (
+              <div className="mb-10">
+                <div className="bg-white rounded-2xl p-8 border border-gray-200 text-center">
+                  <p className="text-gray-500 mb-2">No hay viajes disponibles en este momento.</p>
+                  <p className="text-gray-400 text-sm mb-4">Intenta buscar con diferentes criterios o vuelve más tarde.</p>
+                  <button 
+                    onClick={loadAllTrips} 
+                    className="text-blue-600 underline text-sm hover:text-blue-800"
+                    disabled={searching}
+                  >
+                    {searching ? "Cargando..." : "Recargar viajes"}
+                  </button>
+                </div>
+              </div>
+            )
           )}
 
           {/* Mis solicitudes */}
