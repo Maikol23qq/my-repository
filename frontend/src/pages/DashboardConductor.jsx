@@ -18,6 +18,15 @@ export default function DashboardConductor() {
   const [error, setError] = useState("");
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [tripRequests, setTripRequests] = useState(null);
+  const [editingTrip, setEditingTrip] = useState(null);
+  const [editForm, setEditForm] = useState({
+    from: "",
+    to: "",
+    date: "",
+    time: "",
+    price: "",
+    seats: 1
+  });
 
   // Cargar mis viajes al iniciar
   useEffect(() => {
@@ -180,6 +189,83 @@ export default function DashboardConductor() {
         setTripRequests(null);
         setSelectedTrip(null);
       }
+      if (editingTrip === tripId) {
+        setEditingTrip(null);
+      }
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function openEditTrip(trip) {
+    const departureDate = new Date(trip.departureTime);
+    const dateStr = departureDate.toISOString().split('T')[0];
+    const timeStr = departureDate.toTimeString().slice(0, 5);
+    
+    setEditForm({
+      from: trip.from,
+      to: trip.to,
+      date: dateStr,
+      time: timeStr,
+      price: trip.price.toString(),
+      seats: trip.seatsTotal
+    });
+    setEditingTrip(trip._id);
+  }
+
+  async function handleUpdateTrip() {
+    if (!token) return;
+    
+    if (!editForm.from.trim() || !editForm.to.trim()) {
+      alert("Por favor completa los campos 'Desde' y 'Hasta'");
+      return;
+    }
+    if (!editForm.date || !editForm.time) {
+      alert("Por favor selecciona fecha y hora");
+      return;
+    }
+    if (!editForm.price || Number(editForm.price) <= 0) {
+      alert("Por favor ingresa un precio válido");
+      return;
+    }
+    if (!editForm.seats || Number(editForm.seats) < 1) {
+      alert("Por favor ingresa al menos 1 asiento");
+      return;
+    }
+
+    const departureTime = new Date(`${editForm.date}T${editForm.time}:00`);
+    if (departureTime < new Date()) {
+      alert("No puedes crear viajes en el pasado");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_TRIPS_URL}/${editingTrip}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          from: editForm.from.trim(),
+          to: editForm.to.trim(),
+          departureTime: departureTime.toISOString(),
+          price: Number(editForm.price),
+          seatsTotal: Number(editForm.seats)
+        })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al actualizar viaje');
+      }
+      
+      alert('✅ Viaje actualizado exitosamente');
+      setEditingTrip(null);
+      await loadMyTrips();
     } catch (e) {
       alert(e.message);
     } finally {
@@ -489,6 +575,13 @@ export default function DashboardConductor() {
                             Ver solicitudes ({pendingBookings.length})
                           </button>
                           <button
+                            onClick={() => openEditTrip(trip)}
+                            disabled={loading}
+                            className="bg-green-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Editar viaje
+                          </button>
+                          <button
                             onClick={() => handleDeleteTrip(trip._id)}
                             disabled={loading}
                             className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -634,6 +727,103 @@ export default function DashboardConductor() {
                   No hay solicitudes para este viaje
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Modal de edición de viaje */}
+        {editingTrip && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold">Editar viaje</h3>
+                <button
+                  onClick={() => setEditingTrip(null)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Desde</label>
+                    <input 
+                      value={editForm.from} 
+                      onChange={e => setEditForm({ ...editForm, from: e.target.value })} 
+                      placeholder="Punto de inicio" 
+                      className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Hasta</label>
+                    <input 
+                      value={editForm.to} 
+                      onChange={e => setEditForm({ ...editForm, to: e.target.value })} 
+                      placeholder="Punto de llegada" 
+                      className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+                    <input 
+                      type="date" 
+                      value={editForm.date} 
+                      onChange={e => setEditForm({ ...editForm, date: e.target.value })} 
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Hora</label>
+                    <input 
+                      type="time" 
+                      value={editForm.time} 
+                      onChange={e => setEditForm({ ...editForm, time: e.target.value })} 
+                      className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Precio ($)</label>
+                    <input 
+                      type="number" 
+                      value={editForm.price} 
+                      onChange={e => setEditForm({ ...editForm, price: e.target.value })} 
+                      placeholder="0" 
+                      min="0"
+                      className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Asientos totales</label>
+                    <input 
+                      type="number" 
+                      value={editForm.seats} 
+                      onChange={e => setEditForm({ ...editForm, seats: e.target.value })} 
+                      placeholder="1" 
+                      min="1"
+                      className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none" 
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 justify-end mt-6">
+                  <button
+                    onClick={() => setEditingTrip(null)}
+                    className="px-6 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleUpdateTrip}
+                    disabled={loading}
+                    className="bg-[#2A609E] text-white px-6 py-2 rounded-xl hover:bg-[#224f84] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? "Guardando..." : "Guardar cambios"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

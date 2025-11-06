@@ -396,25 +396,65 @@ export default function DashboardPasajero() {
                             )}
                           </div>
                           {myRequest ? (
-                            <div className="text-sm">
+                            <div className="text-sm space-y-2">
                               {myRequest.status === "pending" && (
                                 <div>
                                   <span className="text-orange-600 font-semibold">⏳ Solicitud pendiente</span>
-                                  {myRequest.seats > 1 && (
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      {myRequest.seats} asientos solicitados
-                                    </div>
-                                  )}
+                                  <div className="text-xs text-gray-500 mt-1 mb-2">
+                                    {myRequest.seats} asiento{myRequest.seats > 1 ? 's' : ''} solicitado{myRequest.seats > 1 ? 's' : ''}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-xs text-gray-600">Actualizar a:</label>
+                                    <select
+                                      value={selectedSeats[trip._id] || myRequest.seats}
+                                      onChange={(e) => setSelectedSeats({ ...selectedSeats, [trip._id]: Number(e.target.value) })}
+                                      className="border rounded px-2 py-1 text-xs w-16"
+                                      disabled={loading}
+                                    >
+                                      {Array.from({ length: Math.min((trip.seatsAvailable || 0) + myRequest.seats, 10) }, (_, i) => i + 1).map(num => (
+                                        <option key={num} value={num}>{num}</option>
+                                      ))}
+                                    </select>
+                                    {(selectedSeats[trip._id] || myRequest.seats) !== myRequest.seats && (
+                                      <button
+                                        onClick={() => bookTrip(trip._id, selectedSeats[trip._id] || myRequest.seats)}
+                                        disabled={loading}
+                                        className="text-[#2A609E] underline text-xs"
+                                      >
+                                        Actualizar
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               )}
                               {myRequest.status === "accepted" && (
                                 <div>
                                   <span className="text-green-600 font-semibold">✓ Aceptado</span>
-                                  {myRequest.seats > 1 && (
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      {myRequest.seats} asientos confirmados
-                                    </div>
-                                  )}
+                                  <div className="text-xs text-gray-500 mt-1 mb-2">
+                                    {myRequest.seats} asiento{myRequest.seats > 1 ? 's' : ''} confirmado{myRequest.seats > 1 ? 's' : ''}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-xs text-gray-600">Actualizar a:</label>
+                                    <select
+                                      value={selectedSeats[trip._id] || myRequest.seats}
+                                      onChange={(e) => setSelectedSeats({ ...selectedSeats, [trip._id]: Number(e.target.value) })}
+                                      className="border rounded px-2 py-1 text-xs w-16"
+                                      disabled={loading}
+                                    >
+                                      {Array.from({ length: Math.min((trip.seatsAvailable || 0) + myRequest.seats, 10) }, (_, i) => i + 1).map(num => (
+                                        <option key={num} value={num}>{num}</option>
+                                      ))}
+                                    </select>
+                                    {(selectedSeats[trip._id] || myRequest.seats) !== myRequest.seats && (
+                                      <button
+                                        onClick={() => bookTrip(trip._id, selectedSeats[trip._id] || myRequest.seats)}
+                                        disabled={loading}
+                                        className="text-[#2A609E] underline text-xs"
+                                      >
+                                        Actualizar
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               )}
                               {myRequest.status === "rejected" && (
