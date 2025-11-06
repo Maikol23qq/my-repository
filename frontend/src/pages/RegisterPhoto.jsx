@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Upload } from "lucide-react";
+import { API_ONBOARDING_URL } from "../config/api.js";
 
 export default function RegisterPhoto() {
   const [photo, setPhoto] = useState(null);
@@ -17,15 +18,9 @@ export default function RegisterPhoto() {
     }
   };
 
-  const API_URL =
-    import.meta.env.VITE_API_URL ||
-    (import.meta.env.MODE === "production"
-      ? "https://wheells-backend-5dy4.onrender.com/api/auth"
-      : "http://localhost:5000/api/auth");
-
   const handleContinue = async () => {
     if (role === "conductor") {
-      navigate("/register-driver-vehicle");
+      navigate("/register-driver-vehicle", { state: location.state });
       return;
     }
     const onboardingToken = localStorage.getItem("onboardingToken");
@@ -35,7 +30,7 @@ export default function RegisterPhoto() {
       return;
     }
     try {
-      const res = await fetch(`${API_URL.replace('/api/auth','')}/api/onboarding/pasajero`, {
+      const res = await fetch(`${API_ONBOARDING_URL}/pasajero`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -44,8 +39,22 @@ export default function RegisterPhoto() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al completar onboarding");
-      alert("¡Onboarding de pasajero completado! Ahora inicia sesión.");
-      navigate("/auth");
+      
+      // Si viene del dashboard, volver al dashboard después de completar
+      const fromDashboard = location.state?.fromDashboard || sessionStorage.getItem('fromDashboard') === 'true';
+      if (fromDashboard) {
+        // Actualizar token y rol si viene en la respuesta
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
+        localStorage.setItem("role", "pasajero");
+        sessionStorage.removeItem('fromDashboard');
+        alert("¡Onboarding de pasajero completado!");
+        navigate("/dashboard-pasajero");
+      } else {
+        alert("¡Onboarding de pasajero completado! Ahora inicia sesión.");
+        navigate("/auth");
+      }
     } catch (e) {
       alert(e.message);
     }

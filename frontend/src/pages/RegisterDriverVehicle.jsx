@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload } from "lucide-react";
+import { API_ONBOARDING_URL } from "../config/api.js";
 
 export default function RegisterDriverVehicle() {
   const navigate = useNavigate();
@@ -25,13 +26,13 @@ export default function RegisterDriverVehicle() {
     }
   };
 
-  const API_URL =
-    import.meta.env.VITE_API_URL ||
-    (import.meta.env.MODE === "production"
-      ? "https://wheells-backend-5dy4.onrender.com/api/auth"
-      : "http://localhost:5000/api/auth");
-
   const handleFinish = async () => {
+    // Validaciones
+    if (!marca.trim() || !modelo.trim() || !anio || !placa.trim()) {
+      alert("Por favor completa todos los campos del vehículo");
+      return;
+    }
+    
     const onboardingToken = localStorage.getItem("onboardingToken");
     if (!onboardingToken) {
       alert("No se encontró token de onboarding. Inicia sesión nuevamente.");
@@ -39,7 +40,7 @@ export default function RegisterDriverVehicle() {
       return;
     }
     try {
-      const res = await fetch(`${API_URL.replace('/api/auth','')}/api/onboarding/conductor`, {
+      const res = await fetch(`${API_ONBOARDING_URL}/conductor`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -49,8 +50,23 @@ export default function RegisterDriverVehicle() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al completar onboarding");
-      alert("¡Onboarding de conductor completado! Ahora inicia sesión.");
-      navigate("/auth");
+      
+      // Si viene del dashboard, volver al dashboard después de completar
+      const fromDashboard = sessionStorage.getItem('fromDashboard') === 'true';
+      
+      if (fromDashboard) {
+        // Actualizar token y rol si viene en la respuesta
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
+        localStorage.setItem("role", "conductor");
+        sessionStorage.removeItem('fromDashboard');
+        alert("¡Onboarding de conductor completado!");
+        navigate("/dashboard-conductor");
+      } else {
+        alert("¡Onboarding de conductor completado! Ahora inicia sesión.");
+        navigate("/auth");
+      }
     } catch (e) {
       alert(e.message);
     }

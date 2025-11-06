@@ -30,7 +30,25 @@ export default function DashboardConductor() {
         body: JSON.stringify({ role })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'No se pudo cambiar el rol');
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'No se pudo cambiar el rol');
+      }
+      
+      // Si necesita onboarding, redirigir a la página correspondiente
+      if (data.needOnboarding) {
+        if (data.onboardingToken) {
+          localStorage.setItem('onboardingToken', data.onboardingToken);
+        }
+        // Guardar en sessionStorage para que las páginas de onboarding sepan que viene del dashboard
+        sessionStorage.setItem('fromDashboard', 'true');
+        navigate(data.nextRoute || (role === 'conductor' ? '/register-driver-vehicle' : '/register-photo'), {
+          state: { role: role, fromDashboard: true }
+        });
+        return;
+      }
+      
+      // Si el rol ya está completado, cambiar directamente
       if (data.token) localStorage.setItem('token', data.token);
       localStorage.setItem('role', role);
       window.location.href = role === 'pasajero' ? '/dashboard-pasajero' : '/dashboard-conductor';
