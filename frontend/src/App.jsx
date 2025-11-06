@@ -6,6 +6,7 @@ import RegisterDriverVehicle from "./pages/RegisterDriverVehicle";
 import RegisterDriverPhotos from "./pages/RegisterDriverPhotos";
 import DashboardConductor from "./pages/DashboardConductor";
 import DashboardPasajero from "./pages/DashboardPasajero";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -18,7 +19,7 @@ function App() {
         <Route path="/register-driver-photos" element={<RegisterDriverPhotos />} />
         <Route path="/dashboard-pasajero" element={<DashboardPasajero />} />
         <Route path="/dashboard-conductor" element={<DashboardConductor />} />
-
+        <Route path="/profile" element={<Profile />} />
       </Routes>
     </BrowserRouter>
   );

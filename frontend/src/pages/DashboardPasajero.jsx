@@ -167,6 +167,13 @@ export default function DashboardPasajero() {
             <p className="text-gray-600 text-sm">{userName}</p>
             <div className="flex gap-2 mt-1">
               <button 
+                onClick={() => navigate('/profile')} 
+                className="text-xs underline text-gray-600 hover:text-gray-800"
+              >
+                Mi perfil
+              </button>
+              <span className="text-gray-400">|</span>
+              <button 
                 onClick={() => switchTo('conductor')} 
                 className="text-xs underline text-blue-600 hover:text-blue-800"
               >
