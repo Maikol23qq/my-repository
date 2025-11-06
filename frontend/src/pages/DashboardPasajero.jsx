@@ -367,8 +367,28 @@ export default function DashboardPasajero() {
                         <div className="flex-1">
                           <div className="font-semibold text-lg mb-2">{trip.from} → {trip.to}</div>
                           {trip.driver && (
-                            <div className="text-sm text-gray-600 mb-1">
-                              Conductor: {trip.driver.nombre}
+                            <div className="flex items-center gap-2 mb-2">
+                              {trip.driver.photoUrl && (
+                                <img 
+                                  src={trip.driver.photoUrl} 
+                                  alt={trip.driver.nombre}
+                                  className="w-10 h-10 rounded-full object-cover border-2 border-[#2A609E]"
+                                />
+                              )}
+                              <div>
+                                <div className="text-sm font-medium text-gray-700">
+                                  Conductor: {trip.driver.nombre}
+                                </div>
+                                {trip.driver.vehicle?.photoUrl && (
+                                  <div className="mt-1">
+                                    <img 
+                                      src={trip.driver.vehicle.photoUrl} 
+                                      alt="Vehículo"
+                                      className="w-16 h-12 rounded object-cover border border-gray-300"
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           )}
                           <div className="text-sm text-gray-600 mb-1">
@@ -552,8 +572,28 @@ export default function DashboardPasajero() {
                         <div className="flex-1">
                           <div className="font-semibold text-lg mb-2">{trip.from} → {trip.to}</div>
                           {trip.driver && (
-                            <div className="text-sm text-gray-600 mb-1">
-                              Conductor: {trip.driver.nombre}
+                            <div className="flex items-center gap-2 mb-2">
+                              {trip.driver.photoUrl && (
+                                <img 
+                                  src={trip.driver.photoUrl} 
+                                  alt={trip.driver.nombre}
+                                  className="w-10 h-10 rounded-full object-cover border-2 border-[#2A609E]"
+                                />
+                              )}
+                              <div>
+                                <div className="text-sm font-medium text-gray-700">
+                                  Conductor: {trip.driver.nombre}
+                                </div>
+                                {trip.driver.vehicle?.photoUrl && (
+                                  <div className="mt-1">
+                                    <img 
+                                      src={trip.driver.vehicle.photoUrl} 
+                                      alt="Vehículo"
+                                      className="w-16 h-12 rounded object-cover border border-gray-300"
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           )}
                           <div className="text-sm text-gray-600 mb-1">

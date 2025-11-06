@@ -6,7 +6,9 @@ import { API_ONBOARDING_URL } from "../config/api.js";
 export default function RegisterDriverVehicle() {
   const navigate = useNavigate();
   const [photoVehiculo, setPhotoVehiculo] = useState(null);
+  const [photoVehiculoBase64, setPhotoVehiculoBase64] = useState(null);
   const [photoPlaca, setPhotoPlaca] = useState(null);
+  const [photoPlacaBase64, setPhotoPlacaBase64] = useState(null);
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
   const [anio, setAnio] = useState("");
@@ -16,6 +18,12 @@ export default function RegisterDriverVehicle() {
     const file = e.target.files[0];
     if (file) {
       setPhotoVehiculo(URL.createObjectURL(file));
+      // Convertir a base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoVehiculoBase64(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -23,6 +31,12 @@ export default function RegisterDriverVehicle() {
     const file = e.target.files[0];
     if (file) {
       setPhotoPlaca(URL.createObjectURL(file));
+      // Convertir a base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPlacaBase64(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -46,7 +60,13 @@ export default function RegisterDriverVehicle() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${onboardingToken}`,
         },
-        body: JSON.stringify({ marca, modelo, anio, placa })
+        body: JSON.stringify({ 
+          marca, 
+          modelo, 
+          anio, 
+          placa,
+          vehiclePhotoUrl: photoVehiculoBase64 || ""
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al completar onboarding");

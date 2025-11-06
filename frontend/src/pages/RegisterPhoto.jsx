@@ -5,6 +5,7 @@ import { API_ONBOARDING_URL } from "../config/api.js";
 
 export default function RegisterPhoto() {
   const [photo, setPhoto] = useState(null);
+  const [photoBase64, setPhotoBase64] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -15,6 +16,12 @@ export default function RegisterPhoto() {
     const file = e.target.files[0];
     if (file) {
       setPhoto(URL.createObjectURL(file));
+      // Convertir a base64
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoBase64(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -36,6 +43,9 @@ export default function RegisterPhoto() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${onboardingToken}`,
         },
+        body: JSON.stringify({ 
+          photoUrl: photoBase64 || "" 
+        })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al completar onboarding");
