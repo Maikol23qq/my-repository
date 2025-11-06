@@ -172,6 +172,44 @@ export default function DashboardPasajero() {
     }
   }
 
+  async function handleCancelBooking(tripId) {
+    if (!token) {
+      alert("Sesión expirada. Por favor inicia sesión nuevamente.");
+      navigate("/auth");
+      return;
+    }
+
+    if (!confirm('¿Estás seguro de cancelar esta reserva?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_TRIPS_URL}/${tripId}/bookings`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al cancelar reserva');
+      }
+      
+      alert(data.message || '✅ Reserva cancelada exitosamente');
+      await loadMyTrips();
+      // Actualizar resultados si el viaje está visible
+      setResults(results.map(trip => 
+        trip._id === tripId 
+          ? { ...trip, seatsAvailable: data.seatsAvailable || trip.seatsAvailable }
+          : trip
+      ));
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
@@ -469,9 +507,27 @@ export default function DashboardPasajero() {
                             return null;
                           })()}
                           {status === "accepted" && (
-                            <div className="text-xs text-gray-500">
-                              ¡Tu solicitud fue aceptada!
+                            <div className="space-y-2">
+                              <div className="text-xs text-gray-500">
+                                ¡Tu solicitud fue aceptada!
+                              </div>
+                              <button
+                                onClick={() => handleCancelBooking(trip._id)}
+                                disabled={loading}
+                                className="bg-red-600 text-white px-4 py-2 rounded-lg text-xs hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Cancelar reserva
+                              </button>
                             </div>
+                          )}
+                          {status === "pending" && (
+                            <button
+                              onClick={() => handleCancelBooking(trip._id)}
+                              disabled={loading}
+                              className="bg-red-600 text-white px-4 py-2 rounded-lg text-xs hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                            >
+                              Cancelar solicitud
+                            </button>
                           )}
                           {status === "rejected" && (
                             <div className="text-xs text-gray-500">

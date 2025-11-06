@@ -154,6 +154,39 @@ export default function DashboardConductor() {
     }
   }
 
+  async function handleDeleteTrip(tripId) {
+    if (!token) return;
+    
+    if (!confirm('¿Estás seguro de eliminar este viaje? Esta acción no se puede deshacer.')) {
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_TRIPS_URL}/${tripId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al eliminar viaje');
+      }
+      
+      alert('✅ Viaje eliminado exitosamente');
+      await loadMyTrips();
+      // Cerrar modal si estaba abierto
+      if (selectedTrip === tripId) {
+        setTripRequests(null);
+        setSelectedTrip(null);
+      }
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function createTrip() {
     // Validaciones
     if (!from.trim() || !to.trim()) {
@@ -401,8 +434,9 @@ export default function DashboardConductor() {
               {myTrips.map(trip => {
                 const acceptedBookings = trip.bookings?.filter(b => b.status === "accepted") || [];
                 const pendingBookings = trip.bookings?.filter(b => b.status === "pending") || [];
+                const totalAcceptedSeats = acceptedBookings.reduce((sum, b) => sum + (b.seats || 1), 0);
                 const passengersCount = acceptedBookings.length;
-                const availableSeats = trip.seatsTotal - passengersCount;
+                const availableSeats = trip.seatsTotal - totalAcceptedSeats;
                 
                 return (
                   <div key={trip._id} className="bg-white rounded-2xl p-6 border border-gray-200 shadow">
@@ -447,12 +481,21 @@ export default function DashboardConductor() {
                             <span className="text-red-600">✗ Lleno</span>
                           )}
                         </div>
-                        <button
-                          onClick={() => loadTripRequests(trip._id)}
-                          className="mt-2 bg-[#2A609E] text-white px-4 py-2 rounded-xl text-sm hover:bg-[#224f84] transition"
-                        >
-                          Ver solicitudes ({pendingBookings.length})
-                        </button>
+                        <div className="flex flex-col gap-2 mt-2">
+                          <button
+                            onClick={() => loadTripRequests(trip._id)}
+                            className="bg-[#2A609E] text-white px-4 py-2 rounded-xl text-sm hover:bg-[#224f84] transition"
+                          >
+                            Ver solicitudes ({pendingBookings.length})
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTrip(trip._id)}
+                            disabled={loading}
+                            className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Eliminar viaje
+                          </button>
+                        </div>
                         <div className="text-xs text-gray-500 mt-2">
                           Creado: {new Date(trip.createdAt).toLocaleDateString('es-ES')}
                         </div>
