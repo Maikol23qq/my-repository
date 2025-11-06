@@ -17,14 +17,37 @@ export default function RegisterPhoto() {
     }
   };
 
-  const handleContinue = () => {
+  const API_URL =
+    import.meta.env.VITE_API_URL ||
+    (import.meta.env.MODE === "production"
+      ? "https://wheells-backend-5dy4.onrender.com/api/auth"
+      : "http://localhost:5000/api/auth");
+
+  const handleContinue = async () => {
     if (role === "conductor") {
-      // Si es conductor, va al registro del vehículo
       navigate("/register-driver-vehicle");
-    } else {
-      // Si es pasajero, termina el registro
-      alert("¡Registro completado con éxito! 🎉");
-      navigate("/");
+      return;
+    }
+    const onboardingToken = localStorage.getItem("onboardingToken");
+    if (!onboardingToken) {
+      alert("No se encontró token de onboarding. Inicia sesión nuevamente.");
+      navigate("/auth");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL.replace('/api/auth','')}/api/onboarding/pasajero`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${onboardingToken}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al completar onboarding");
+      alert("¡Onboarding de pasajero completado! Ahora inicia sesión.");
+      navigate("/auth");
+    } catch (e) {
+      alert(e.message);
     }
   };
 

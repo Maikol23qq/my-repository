@@ -1,4 +1,26 @@
 export default function DashboardConductor() {
+  const API_BASE =
+    (import.meta.env.VITE_API_URL || (import.meta.env.MODE === "production"
+      ? "https://wheells-backend-5dy4.onrender.com/api/auth"
+      : "http://localhost:5000/api/auth")).replace('/api/auth','');
+
+  async function switchTo(role) {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/user/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ role })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo cambiar el rol');
+      if (data.token) localStorage.setItem('token', data.token);
+      localStorage.setItem('role', role);
+      window.location.href = role === 'pasajero' ? '/dashboard-pasajero' : '/dashboard-conductor';
+    } catch (e) {
+      alert(e.message);
+    }
+  }
   // Datos de ejemplo para los viajes
   const viajes = [
     {
@@ -34,6 +56,7 @@ export default function DashboardConductor() {
               conductor
             </span>
             <p className="text-gray-600 text-sm">Nombre de usuario</p>
+            <button onClick={() => switchTo('pasajero')} className="mt-2 text-xs underline text-blue-600">Cambiar a pasajero</button>
           </div>
         </div>
       </div>

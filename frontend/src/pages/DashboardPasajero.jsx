@@ -3,6 +3,29 @@ import { useNavigate } from "react-router-dom";
 export default function DashboardPasajero() {
   const navigate = useNavigate();
 
+  const API_BASE =
+    (import.meta.env.VITE_API_URL || (import.meta.env.MODE === "production"
+      ? "https://wheells-backend-5dy4.onrender.com/api/auth"
+      : "http://localhost:5000/api/auth")).replace('/api/auth','');
+
+  async function switchTo(role) {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_BASE}/api/user/role`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ role })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo cambiar el rol');
+      if (data.token) localStorage.setItem('token', data.token);
+      localStorage.setItem('role', role);
+      window.location.href = role === 'conductor' ? '/dashboard-conductor' : '/dashboard-pasajero';
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
@@ -38,6 +61,7 @@ export default function DashboardPasajero() {
               pasajero
             </span>
             <p className="text-gray-600 text-sm">{userName}</p>
+            <button onClick={() => switchTo('conductor')} className="mt-2 text-xs underline text-blue-600">Cambiar a conductor</button>
           </div>
         </div>
       </div>

@@ -14,7 +14,11 @@ export default function Auth() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api/auth";
+  const API_URL =
+    import.meta.env.VITE_API_URL ||
+    (import.meta.env.MODE === "production"
+      ? "https://wheells-backend-5dy4.onrender.com/api/auth"
+      : "http://localhost:5000/api/auth");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,12 +59,13 @@ export default function Auth() {
           throw new Error(data.error || data.message || "Error al registrarse");
         }
 
-        // REDIRIGIR
-        if (role === "conductor") {
-          navigate("/register-photo", { state: { role: "conductor" } });
-        } else {
-          navigate("/register-photo", { state: { role: "pasajero" } });
+        // Manejar onboarding
+        if (data.onboardingToken) {
+          localStorage.setItem("onboardingToken", data.onboardingToken);
         }
+        const nextRoute = data.nextRoute || (role === "conductor" ? "/register-driver-vehicle" : "/register-photo");
+        const nextRole = data.preferredRole || role;
+        navigate(nextRoute, { state: { role: nextRole } });
 
         // Limpiar campos
         setEmail("");
@@ -81,7 +86,16 @@ export default function Auth() {
         const data = await res.json();
         console.log("📨 Respuesta completa del login:", data);
         
-        if (!res.ok) throw new Error(data.message || "Error al iniciar sesión");
+        if (!res.ok) {
+          if (res.status === 403 && data?.needOnboarding) {
+            // Redirigir a completar onboarding
+            const route = data.nextRoute || "/register-photo";
+            const nextRole = data.preferredRole || "pasajero";
+            navigate(route, { state: { role: nextRole } });
+            return;
+          }
+          throw new Error(data.message || data.error || "Error al iniciar sesión");
+        }
 
         // Guardar token
         localStorage.setItem("token", data.token);
@@ -156,6 +170,7 @@ export default function Auth() {
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 className="bg-gray-100 p-3 rounded-md text-sm focus:ring-2 focus:ring-[#2A609E] outline-none"
+                autoComplete="name"
                 required
               />
               <input
@@ -181,6 +196,7 @@ export default function Auth() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="bg-gray-100 p-3 rounded-md text-sm focus:ring-2 focus:ring-[#2A609E] outline-none"
+            autoComplete="email"
             required
           />
           <input
@@ -189,6 +205,7 @@ export default function Auth() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="bg-gray-100 p-3 rounded-md text-sm focus:ring-2 focus:ring-[#2A609E] outline-none"
+            autoComplete={isRegister ? "new-password" : "current-password"}
             required
           />
 

@@ -4,22 +4,56 @@ import { ArrowLeft, Upload } from "lucide-react";
 
 export default function RegisterDriverVehicle() {
   const navigate = useNavigate();
-  const [photo, setPhoto] = useState(null);
+  const [photoVehiculo, setPhotoVehiculo] = useState(null);
+  const [photoPlaca, setPhotoPlaca] = useState(null);
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
   const [anio, setAnio] = useState("");
   const [placa, setPlaca] = useState("");
 
-  const handlePhotoUpload = (e) => {
+  const handlePhotoVehiculoUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setPhoto(URL.createObjectURL(file));
+      setPhotoVehiculo(URL.createObjectURL(file));
     }
   };
 
-  const handleFinish = () => {
-    alert("¡Registro de conductor completado con éxito! 🎉");
-    navigate("/");
+  const handlePhotoPlacaUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPhotoPlaca(URL.createObjectURL(file));
+    }
+  };
+
+  const API_URL =
+    import.meta.env.VITE_API_URL ||
+    (import.meta.env.MODE === "production"
+      ? "https://wheells-backend-5dy4.onrender.com/api/auth"
+      : "http://localhost:5000/api/auth");
+
+  const handleFinish = async () => {
+    const onboardingToken = localStorage.getItem("onboardingToken");
+    if (!onboardingToken) {
+      alert("No se encontró token de onboarding. Inicia sesión nuevamente.");
+      navigate("/auth");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL.replace('/api/auth','')}/api/onboarding/conductor`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${onboardingToken}`,
+        },
+        body: JSON.stringify({ marca, modelo, anio, placa })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al completar onboarding");
+      alert("¡Onboarding de conductor completado! Ahora inicia sesión.");
+      navigate("/auth");
+    } catch (e) {
+      alert(e.message);
+    }
   };
 
   return (
@@ -117,9 +151,9 @@ export default function RegisterDriverVehicle() {
         <div className="mt-8 text-center">
           <p className="text-sm font-semibold text-gray-700 mb-2">Foto del vehículo</p>
           <label className="relative cursor-pointer flex flex-col items-center justify-center w-40 h-40 mx-auto border-4 border-dashed border-[#2A609E] rounded-full bg-gray-100 hover:bg-gray-200 transition overflow-hidden">
-            {photo ? (
+            {photoVehiculo ? (
               <img
-                src={photo}
+                src={photoVehiculo}
                 alt="Vehículo"
                 className="w-full h-full object-cover rounded-full"
               />
@@ -132,7 +166,7 @@ export default function RegisterDriverVehicle() {
                 </span>
               </div>
             )}
-            <input type="file" className="hidden" onChange={handlePhotoUpload} />
+            <input type="file" className="hidden" accept="image/*" onChange={handlePhotoVehiculoUpload} />
           </label>
         </div>
 
@@ -140,9 +174,9 @@ export default function RegisterDriverVehicle() {
         <div className="mt-8 text-center">
           <p className="text-sm font-semibold text-gray-700 mb-2">Foto de la placa</p>
           <label className="relative cursor-pointer flex flex-col items-center justify-center w-40 h-40 mx-auto border-4 border-dashed border-[#2A609E] rounded-full bg-gray-100 hover:bg-gray-200 transition overflow-hidden">
-            {photo ? (
+            {photoPlaca ? (
               <img
-                src={photo}
+                src={photoPlaca}
                 alt="Placa"
                 className="w-full h-full object-cover rounded-full"
               />
@@ -155,16 +189,16 @@ export default function RegisterDriverVehicle() {
                 </span>
               </div>
             )}
-            <input type="file" className="hidden" onChange={handlePhotoUpload} />
+            <input type="file" className="hidden" accept="image/*" onChange={handlePhotoPlacaUpload} />
           </label>
         </div>
 
         {/* Botón final */}
         <button
           onClick={handleFinish}
-          disabled={!marca || !modelo || !anio || !placa || !photo}
+          disabled={!marca || !modelo || !anio || !placa || !photoVehiculo || !photoPlaca}
           className={`mt-8 w-full py-2 rounded-full font-semibold transition ${
-            marca && modelo && anio && placa && photo
+            marca && modelo && anio && placa && photoVehiculo && photoPlaca
               ? "bg-[#2A609E] text-white hover:bg-[#224f84]"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
