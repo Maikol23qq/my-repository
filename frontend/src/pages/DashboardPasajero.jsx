@@ -159,18 +159,17 @@ export default function DashboardPasajero() {
         throw new Error(data.error || 'No se pudo solicitar reserva');
       }
       
-      alert(`✅ Solicitud de reserva por ${seats} asiento${seats > 1 ? 's' : ''} enviada. El conductor revisará tu solicitud.`);
+      // El mensaje ya viene del backend con información sobre si fue actualización o nueva solicitud
+      alert(data.message || `✅ Solicitud de reserva por ${seats} asiento${seats > 1 ? 's' : ''} enviada. El conductor revisará tu solicitud.`);
       
-      // Limpiar selección de asientos para este viaje
-      setSelectedSeats({ ...selectedSeats, [id]: 1 });
-      
-      // Actualizar resultados
+      // Actualizar resultados con la nueva disponibilidad de asientos
       setResults(results.map(trip => 
         trip._id === id 
-          ? { ...trip, requested: true }
+          ? { ...trip, requested: true, seatsAvailable: data.seatsAvailable !== undefined ? data.seatsAvailable : trip.seatsAvailable }
           : trip
       ));
       await loadMyTrips();
+      await loadAllTrips(); // Recargar todos los viajes para actualizar disponibilidad
     } catch (e) {
       alert(e.message);
     } finally {
