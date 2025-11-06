@@ -454,6 +454,20 @@ export default function DashboardPasajero() {
                             {status === "rejected" && "✗"}
                             {" "}{statusInfo.text}
                           </div>
+                          {(() => {
+                            const myBooking = trip.bookings?.find(b => 
+                              b.passengerId && (b.passengerId._id?.toString() === userId || b.passengerId.toString() === userId)
+                            );
+                            const seats = myBooking?.seats || 1;
+                            if (seats > 1) {
+                              return (
+                                <div className="text-xs text-gray-500 mb-1">
+                                  {seats} asientos {status === "accepted" ? "confirmados" : "solicitados"}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                           {status === "accepted" && (
                             <div className="text-xs text-gray-500">
                               ¡Tu solicitud fue aceptada!
