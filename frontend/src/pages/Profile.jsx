@@ -56,6 +56,44 @@ export default function Profile() {
     }
   }
 
+  async function handleDeleteAccount() {
+    if (!confirm("¿Estás SEGURO de que quieres eliminar tu cuenta? Esta acción no se puede deshacer y eliminará:\n\n- Tu cuenta\n- Todos tus viajes\n- Todas tus reservas\n- Todos tus mensajes\n\n¿Continuar?")) {
+      return;
+    }
+
+    if (!confirm("⚠️ ÚLTIMA ADVERTENCIA: Esta acción es PERMANENTE. ¿Estás completamente seguro?")) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError("");
+      
+      const res = await fetch(`${API_USER_URL}/me`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Error al eliminar cuenta");
+      }
+
+      // Limpiar localStorage y redirigir
+      localStorage.clear();
+      sessionStorage.clear();
+      alert("Tu cuenta ha sido eliminada exitosamente.");
+      window.location.href = "/auth";
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSave() {
     try {
       setSaving(true);
@@ -328,6 +366,21 @@ export default function Profile() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Botón de eliminar cuenta */}
+      <div className="mt-8 border-t pt-6">
+        <h3 className="text-lg font-bold text-red-600 mb-4">Zona de peligro</h3>
+        <button
+          onClick={handleDeleteAccount}
+          disabled={saving}
+          className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saving ? "Eliminando..." : "Eliminar mi cuenta"}
+        </button>
+        <p className="text-sm text-gray-500 mt-2">
+          ⚠️ Esta acción eliminará permanentemente tu cuenta, todos tus viajes y reservas. No se puede deshacer.
+        </p>
       </div>
     </div>
   );
