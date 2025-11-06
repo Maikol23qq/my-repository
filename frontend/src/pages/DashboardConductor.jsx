@@ -532,19 +532,19 @@ export default function DashboardConductor() {
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          {trip.driverId && trip.driverId.photoUrl && (
+                          {userData?.photoUrl && (
                             <img 
-                              src={trip.driverId.photoUrl} 
+                              src={userData.photoUrl} 
                               alt="Tu foto"
                               className="w-10 h-10 rounded-full object-cover border-2 border-[#2A609E]"
                             />
                           )}
                           <div className="font-semibold text-lg">{trip.from} → {trip.to}</div>
                         </div>
-                        {trip.vehicle?.photoUrl && (
+                        {userData?.vehicle?.photoUrl && (
                           <div className="mb-2">
                             <img 
-                              src={trip.vehicle.photoUrl} 
+                              src={userData.vehicle.photoUrl} 
                               alt="Vehículo"
                               className="w-20 h-14 rounded object-cover border border-gray-300"
                             />
