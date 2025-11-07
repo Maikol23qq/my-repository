@@ -94,19 +94,7 @@ export default function RegisterDriverVehicle() {
     }
 
     try {
-      // Verificar que el correo no esté en uso
-      const checkRes = await fetch(`${API_AUTH_URL}/check-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: registrationData.email })
-      });
-
-      if (!checkRes.ok) {
-        const checkData = await checkRes.json();
-        throw new Error(checkData.error || "El correo ya está en uso");
-      }
-
-      // Crear usuario completo (registro + onboarding completo de conductor)
+      // Crear usuario completo o agregar rol conductor a usuario existente
       const res = await fetch(`${API_AUTH_URL}/register-complete-conductor`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -124,6 +112,9 @@ export default function RegisterDriverVehicle() {
       const data = await res.json();
       if (!res.ok) {
         // Manejar errores específicos
+        if (res.status === 401) {
+          throw new Error(data.error || "Contraseña incorrecta. Si ya tienes una cuenta, usa la contraseña correcta.");
+        }
         if (res.status === 400) {
           throw new Error(data.error || "Datos inválidos. Verifica tu información.");
         }
@@ -146,16 +137,18 @@ export default function RegisterDriverVehicle() {
         }
       }
 
+      // Mostrar mensaje de éxito
+      const successMessage = data.message || "¡Registro completado exitosamente!";
+      alert(successMessage);
+
       // Si viene del dashboard, volver al dashboard
       const fromDashboard = sessionStorage.getItem('fromDashboard') === 'true';
       if (fromDashboard) {
         sessionStorage.removeItem('fromDashboard');
-        alert("¡Registro completado exitosamente!");
-        navigate("/dashboard-conductor");
-      } else {
-        // Redirigir directamente al dashboard después del registro exitoso
-        navigate("/dashboard-conductor");
       }
+      
+      // Redirigir directamente al dashboard después del registro exitoso
+      navigate("/dashboard-conductor");
     } catch (e) {
       console.error("Error al completar registro:", e);
       alert(e.message || "Error al completar el registro. Por favor intenta nuevamente.");

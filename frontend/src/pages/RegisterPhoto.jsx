@@ -82,19 +82,7 @@ export default function RegisterPhoto() {
     }
 
     try {
-      // Verificar que el correo no esté en uso
-      const checkRes = await fetch(`${API_AUTH_URL}/check-email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: registrationData.email })
-      });
-
-      if (!checkRes.ok) {
-        const checkData = await checkRes.json();
-        throw new Error(checkData.error || "El correo ya está en uso");
-      }
-
-      // Crear usuario completo (registro + onboarding)
+      // Crear usuario completo o agregar rol pasajero a usuario existente
       const res = await fetch(`${API_AUTH_URL}/register-complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -107,6 +95,9 @@ export default function RegisterPhoto() {
       const data = await res.json();
       if (!res.ok) {
         // Manejar errores específicos
+        if (res.status === 401) {
+          throw new Error(data.error || "Contraseña incorrecta. Si ya tienes una cuenta, usa la contraseña correcta.");
+        }
         if (res.status === 400) {
           throw new Error(data.error || "Datos inválidos. Verifica tu información.");
         }
@@ -129,16 +120,18 @@ export default function RegisterPhoto() {
         }
       }
 
+      // Mostrar mensaje de éxito
+      const successMessage = data.message || "¡Registro completado exitosamente!";
+      alert(successMessage);
+
       // Si viene del dashboard, volver al dashboard
       const fromDashboard = location.state?.fromDashboard || sessionStorage.getItem('fromDashboard') === 'true';
       if (fromDashboard) {
         sessionStorage.removeItem('fromDashboard');
-        alert("¡Registro completado exitosamente!");
-        navigate("/dashboard-pasajero");
-      } else {
-        // Redirigir directamente al dashboard después del registro exitoso
-        navigate("/dashboard-pasajero");
       }
+      
+      // Redirigir directamente al dashboard después del registro exitoso
+      navigate("/dashboard-pasajero");
     } catch (e) {
       console.error("Error al completar registro:", e);
       alert(e.message || "Error al completar el registro. Por favor intenta nuevamente.");
