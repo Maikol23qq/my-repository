@@ -105,7 +105,16 @@ export default function RegisterPhoto() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al completar registro");
+      if (!res.ok) {
+        // Manejar errores específicos
+        if (res.status === 400) {
+          throw new Error(data.error || "Datos inválidos. Verifica tu información.");
+        }
+        if (res.status === 503) {
+          throw new Error("Servicio no disponible. Por favor intenta nuevamente en unos momentos.");
+        }
+        throw new Error(data.error || data.message || "Error al completar registro. Por favor intenta nuevamente.");
+      }
 
       // Limpiar datos temporales
       localStorage.removeItem("pendingRegistration");
@@ -127,11 +136,12 @@ export default function RegisterPhoto() {
         alert("¡Registro completado exitosamente!");
         navigate("/dashboard-pasajero");
       } else {
-        alert("¡Registro completado exitosamente! Ahora inicia sesión.");
-        navigate("/auth");
+        // Redirigir directamente al dashboard después del registro exitoso
+        navigate("/dashboard-pasajero");
       }
     } catch (e) {
-      alert(e.message);
+      console.error("Error al completar registro:", e);
+      alert(e.message || "Error al completar el registro. Por favor intenta nuevamente.");
     }
   };
 

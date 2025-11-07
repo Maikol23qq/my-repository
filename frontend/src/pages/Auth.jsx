@@ -91,7 +91,17 @@ export default function Auth() {
             navigate(route, { state: { role: nextRole } });
             return;
           }
-          throw new Error(data.message || data.error || "Error al iniciar sesión");
+          // Manejar otros errores comunes
+          if (res.status === 404) {
+            throw new Error("Usuario no encontrado. Verifica tu correo electrónico.");
+          }
+          if (res.status === 401) {
+            throw new Error("Contraseña incorrecta. Intenta nuevamente.");
+          }
+          if (res.status === 400) {
+            throw new Error(data.error || "Datos inválidos. Verifica tu información.");
+          }
+          throw new Error(data.message || data.error || "Error al iniciar sesión. Por favor intenta nuevamente.");
         }
 
         // Guardar token y datos del usuario
@@ -257,7 +267,7 @@ export default function Auth() {
             type="submit"
             className="bg-[#2A609E] text-white font-semibold py-2 rounded-full mt-4 hover:bg-[#224f84] transition"
           >
-            {isRegister ? "Registrarse" : "Iniciar sesión"}
+            {isRegister ? "Siguiente" : "Iniciar sesión"}
           </button>
         </form>
       </div>
