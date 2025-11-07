@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload } from "lucide-react";
-import { API_ONBOARDING_URL } from "../config/api.js";
+import { API_AUTH_URL } from "../config/api.js";
 
 export default function RegisterDriverVehicle() {
   const navigate = useNavigate();
@@ -13,6 +13,9 @@ export default function RegisterDriverVehicle() {
   const [modelo, setModelo] = useState("");
   const [anio, setAnio] = useState("");
   const [placa, setPlaca] = useState("");
+
+  // Obtener datos de registro pendiente
+  const registrationData = JSON.parse(localStorage.getItem("pendingRegistration") || "null");
 
   const optimizeImage = (file, callback) => {
     const reader = new FileReader();
@@ -77,45 +80,71 @@ export default function RegisterDriverVehicle() {
       alert("Por favor completa todos los campos del vehículo");
       return;
     }
-    
-    const onboardingToken = localStorage.getItem("onboardingToken");
-    if (!onboardingToken) {
-      alert("No se encontró token de onboarding. Inicia sesión nuevamente.");
+
+    if (!photoVehiculoBase64) {
+      alert("Por favor sube la foto del vehículo");
+      return;
+    }
+
+    if (!registrationData) {
+      alert("No se encontraron datos de registro. Por favor, comienza de nuevo.");
+      localStorage.removeItem("pendingRegistration");
       navigate("/auth");
       return;
     }
+
     try {
-      const res = await fetch(`${API_ONBOARDING_URL}/conductor`, {
+      // Verificar que el correo no esté en uso
+      const checkRes = await fetch(`${API_AUTH_URL}/check-email`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${onboardingToken}`,
-        },
-        body: JSON.stringify({ 
-          marca, 
-          modelo, 
-          anio, 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: registrationData.email })
+      });
+
+      if (!checkRes.ok) {
+        const checkData = await checkRes.json();
+        throw new Error(checkData.error || "El correo ya está en uso");
+      }
+
+      // Crear usuario completo (registro + onboarding completo de conductor)
+      const res = await fetch(`${API_AUTH_URL}/register-complete-conductor`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...registrationData,
+          photoUrl: registrationData.photoUrl || "",
+          marca,
+          modelo,
+          anio,
           placa,
-          vehiclePhotoUrl: photoVehiculoBase64 || ""
+          vehiclePhotoUrl: photoVehiculoBase64
         })
       });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al completar onboarding");
-      
-      // Si viene del dashboard, volver al dashboard después de completar
-      const fromDashboard = sessionStorage.getItem('fromDashboard') === 'true';
-      
-      if (fromDashboard) {
-        // Actualizar token y rol si viene en la respuesta
-        if (data.token) {
-          localStorage.setItem("token", data.token);
+      if (!res.ok) throw new Error(data.error || "Error al completar registro");
+
+      // Limpiar datos temporales
+      localStorage.removeItem("pendingRegistration");
+
+      // Guardar token y datos del usuario
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", data.role || "conductor");
+        localStorage.setItem("name", data.nombre || registrationData.nombre);
+        if (data.userId) {
+          localStorage.setItem("userId", data.userId.toString());
         }
-        localStorage.setItem("role", "conductor");
+      }
+
+      // Si viene del dashboard, volver al dashboard
+      const fromDashboard = sessionStorage.getItem('fromDashboard') === 'true';
+      if (fromDashboard) {
         sessionStorage.removeItem('fromDashboard');
-        alert("¡Onboarding de conductor completado!");
+        alert("¡Registro completado exitosamente!");
         navigate("/dashboard-conductor");
       } else {
-        alert("¡Onboarding de conductor completado! Ahora inicia sesión.");
+        alert("¡Registro completado exitosamente! Ahora inicia sesión.");
         navigate("/auth");
       }
     } catch (e) {
@@ -141,7 +170,7 @@ export default function RegisterDriverVehicle() {
         </p>
 
         {/* Paso */}
-        <p className="text-sm text-gray-500 mb-2">Paso 2 de 2</p>
+        <p className="text-sm text-gray-500 mb-2">Paso 3 de 3</p>
         <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
           <div
             className="bg-[#2A609E] h-2 rounded-full transition-all duration-700"

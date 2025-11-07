@@ -21,46 +21,39 @@ export default function Auth() {
 
     try {
       if (isRegister) {
-        // REGISTRO
-        console.log("📤 Enviando datos:", {
-          name: nombre,
-          email,
-          password,
-          telefono,
-          idUniversitario,
-          role,
-        });
+        // REGISTRO - Solo guardar datos temporalmente, NO crear usuario aún
+        // Validaciones básicas
+        const isValidEmail = (v) => /.+@.+\..+/.test(v);
+        const isValidPassword = (v) => typeof v === 'string' && v.length >= 6;
 
-        const res = await fetch(`${API_AUTH_URL}/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: nombre,
-            email,
-            password,
-            telefono,
-            idUniversitario,
-            role,
-          }),
-        });
-
-        console.log("Status:", res.status, res.statusText);
-        
-        const data = await res.json();
-        console.log("Respuesta del servidor:", data);
-        
-        if (!res.ok) {
-          console.log("Error completo:", data);
-          throw new Error(data.error || data.message || "Error al registrarse");
+        if (!isValidEmail(email)) {
+          setError("Email inválido");
+          return;
+        }
+        if (!isValidPassword(password)) {
+          setError("La contraseña debe tener al menos 6 caracteres");
+          return;
+        }
+        if (!nombre || !nombre.trim()) {
+          setError("El nombre es obligatorio");
+          return;
         }
 
-        // Manejar onboarding
-        if (data.onboardingToken) {
-          localStorage.setItem("onboardingToken", data.onboardingToken);
-        }
-        const nextRoute = data.nextRoute || (role === "conductor" ? "/register-driver-vehicle" : "/register-photo");
-        const nextRole = data.preferredRole || role;
-        navigate(nextRoute, { state: { role: nextRole } });
+        // Guardar datos temporalmente en localStorage
+        const registrationData = {
+          nombre: nombre.trim(),
+          email: email.trim(),
+          password: password,
+          telefono: telefono.trim() || "",
+          idUniversitario: idUniversitario.trim() || "",
+          role: role || "pasajero"
+        };
+
+        localStorage.setItem("pendingRegistration", JSON.stringify(registrationData));
+
+        // Redirigir al siguiente paso según el rol
+        const nextRoute = role === "conductor" ? "/register-photo" : "/register-photo";
+        navigate(nextRoute, { state: { role: role, step: 1 } });
 
         // Limpiar campos
         setEmail("");

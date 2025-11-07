@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Upload } from "lucide-react";
-import { API_ONBOARDING_URL } from "../config/api.js";
+import { API_ONBOARDING_URL, API_AUTH_URL } from "../config/api.js";
 
 export default function RegisterPhoto() {
   const [photo, setPhoto] = useState(null);
@@ -9,8 +9,10 @@ export default function RegisterPhoto() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Rol recibido desde Auth.jsx (por defecto pasajero)
-  const role = location.state?.role || "pasajero";
+  // Obtener datos de registro pendiente o desde el estado
+  const registrationData = JSON.parse(localStorage.getItem("pendingRegistration") || "null");
+  const role = location.state?.role || registrationData?.role || "pasajero";
+  const step = location.state?.step || 1;
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -57,42 +59,75 @@ export default function RegisterPhoto() {
 
   const handleContinue = async () => {
     if (role === "conductor") {
-      navigate("/register-driver-vehicle", { state: location.state });
+      // Guardar foto temporalmente y continuar al siguiente paso
+      if (photoBase64) {
+        const tempData = { ...registrationData, photoUrl: photoBase64 };
+        localStorage.setItem("pendingRegistration", JSON.stringify(tempData));
+      }
+      navigate("/register-driver-vehicle", { state: { role: role, step: 2 } });
       return;
     }
-    const onboardingToken = localStorage.getItem("onboardingToken");
-    if (!onboardingToken) {
-      alert("No se encontró token de onboarding. Inicia sesión nuevamente.");
+
+    // Para pasajeros, aquí se crea el usuario completo
+    if (!registrationData) {
+      alert("No se encontraron datos de registro. Por favor, comienza de nuevo.");
+      localStorage.removeItem("pendingRegistration");
       navigate("/auth");
       return;
     }
+
+    if (!photoBase64) {
+      alert("Por favor sube tu foto de perfil");
+      return;
+    }
+
     try {
-      const res = await fetch(`${API_ONBOARDING_URL}/pasajero`, {
+      // Verificar que el correo no esté en uso
+      const checkRes = await fetch(`${API_AUTH_URL}/check-email`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${onboardingToken}`,
-        },
-        body: JSON.stringify({ 
-          photoUrl: photoBase64 || "" 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: registrationData.email })
+      });
+
+      if (!checkRes.ok) {
+        const checkData = await checkRes.json();
+        throw new Error(checkData.error || "El correo ya está en uso");
+      }
+
+      // Crear usuario completo (registro + onboarding)
+      const res = await fetch(`${API_AUTH_URL}/register-complete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...registrationData,
+          photoUrl: photoBase64
         })
       });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al completar onboarding");
-      
-      // Si viene del dashboard, volver al dashboard después de completar
+      if (!res.ok) throw new Error(data.error || "Error al completar registro");
+
+      // Limpiar datos temporales
+      localStorage.removeItem("pendingRegistration");
+
+      // Guardar token y datos del usuario
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", data.role || "pasajero");
+        localStorage.setItem("name", data.nombre || registrationData.nombre);
+        if (data.userId) {
+          localStorage.setItem("userId", data.userId.toString());
+        }
+      }
+
+      // Si viene del dashboard, volver al dashboard
       const fromDashboard = location.state?.fromDashboard || sessionStorage.getItem('fromDashboard') === 'true';
       if (fromDashboard) {
-        // Actualizar token y rol si viene en la respuesta
-        if (data.token) {
-          localStorage.setItem("token", data.token);
-        }
-        localStorage.setItem("role", "pasajero");
         sessionStorage.removeItem('fromDashboard');
-        alert("¡Onboarding de pasajero completado!");
+        alert("¡Registro completado exitosamente!");
         navigate("/dashboard-pasajero");
       } else {
-        alert("¡Onboarding de pasajero completado! Ahora inicia sesión.");
+        alert("¡Registro completado exitosamente! Ahora inicia sesión.");
         navigate("/auth");
       }
     } catch (e) {
@@ -119,12 +154,12 @@ export default function RegisterPhoto() {
 
         {/* Paso dinámico */}
         <p className="text-sm text-gray-500 mb-2">
-          {role === "conductor" ? "Paso 1 de 2" : "Paso 2 de 2"}
+          {role === "conductor" ? "Paso 2 de 3" : "Paso 2 de 2"}
         </p>
         <div className="w-full bg-gray-200 rounded-full h-2 mb-6">
           <div
             className="bg-[#2A609E] h-2 rounded-full transition-all duration-700"
-            style={{ width: role === "conductor" ? "50%" : "100%" }}
+            style={{ width: role === "conductor" ? "66%" : "100%" }}
           ></div>
         </div>
 
