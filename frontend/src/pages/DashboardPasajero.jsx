@@ -71,10 +71,21 @@ export default function DashboardPasajero() {
         if (data.onboardingToken) {
           localStorage.setItem('onboardingToken', data.onboardingToken);
         }
+        // Guardar datos del usuario para prellenar formularios
+        if (data.userData) {
+          // Guardar datos en localStorage como pendingRegistration para que las páginas de registro los usen
+          // No incluir password ya que el usuario ya está autenticado
+          const registrationData = {
+            ...data.userData,
+            role: role,
+            fromExistingUser: true // Flag para indicar que viene de un usuario existente
+          };
+          localStorage.setItem('pendingRegistration', JSON.stringify(registrationData));
+        }
         // Guardar en sessionStorage para que las páginas de onboarding sepan que viene del dashboard
         sessionStorage.setItem('fromDashboard', 'true');
         navigate(data.nextRoute || (role === 'conductor' ? '/register-driver-vehicle' : '/register-photo'), {
-          state: { role: role, fromDashboard: true }
+          state: { role: role, fromDashboard: true, userData: data.userData }
         });
         return;
       }

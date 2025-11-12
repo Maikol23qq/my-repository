@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Upload } from "lucide-react";
-import { API_ONBOARDING_URL, API_AUTH_URL } from "../config/api.js";
+import { API_ONBOARDING_URL, API_AUTH_URL, API_USER_URL } from "../config/api.js";
 
 export default function RegisterPhoto() {
   const [photo, setPhoto] = useState(null);
@@ -13,6 +13,16 @@ export default function RegisterPhoto() {
   const registrationData = JSON.parse(localStorage.getItem("pendingRegistration") || "null");
   const role = location.state?.role || registrationData?.role || "pasajero";
   const step = location.state?.step || 1;
+  const fromDashboard = location.state?.fromDashboard || sessionStorage.getItem('fromDashboard') === 'true';
+  const fromExistingUser = registrationData?.fromExistingUser || false;
+
+  // Prellenar foto si viene de usuario existente y tiene foto
+  useEffect(() => {
+    if (fromExistingUser && registrationData?.photoUrl && !photo) {
+      setPhoto(registrationData.photoUrl);
+      setPhotoBase64(registrationData.photoUrl);
+    }
+  }, [fromExistingUser, registrationData]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -82,7 +92,68 @@ export default function RegisterPhoto() {
     }
 
     try {
-      // Crear usuario completo o agregar rol pasajero a usuario existente
+      // Si viene del dashboard (usuario existente), usar endpoint diferente que no requiere password
+      if (fromExistingUser) {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          alert("Sesión expirada. Por favor inicia sesión nuevamente.");
+          navigate("/auth");
+          return;
+        }
+
+        // Actualizar foto de perfil usando el endpoint de usuario autenticado
+        const res = await fetch(`${API_USER_URL}/me`, {
+          method: "PUT",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            photoUrl: photoBase64
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Error al actualizar foto de perfil");
+        }
+
+        // Completar el rol pasajero usando el endpoint de onboarding
+        const onboardingRes = await fetch(`${API_ONBOARDING_URL}/pasajero`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            photoUrl: photoBase64
+          })
+        });
+
+        const onboardingData = await onboardingRes.json();
+        if (!onboardingRes.ok) {
+          throw new Error(onboardingData.error || "Error al completar registro de pasajero");
+        }
+
+        // Limpiar datos temporales
+        localStorage.removeItem("pendingRegistration");
+        sessionStorage.removeItem('fromDashboard');
+
+        // Actualizar token si viene en la respuesta
+        if (onboardingData.token) {
+          localStorage.setItem("token", onboardingData.token);
+        }
+        localStorage.setItem("role", "pasajero");
+        if (onboardingData.nombre) {
+          localStorage.setItem("name", onboardingData.nombre);
+        }
+
+        alert("¡Registro de pasajero completado exitosamente!");
+        navigate("/dashboard-pasajero");
+        return;
+      }
+
+      // Si es un nuevo registro, usar el endpoint normal
       const res = await fetch(`${API_AUTH_URL}/register-complete`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -1,10 +1,11 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Upload } from "lucide-react";
-import { API_AUTH_URL } from "../config/api.js";
+import { API_AUTH_URL, API_ONBOARDING_URL } from "../config/api.js";
 
 export default function RegisterDriverVehicle() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [photoVehiculo, setPhotoVehiculo] = useState(null);
   const [photoVehiculoBase64, setPhotoVehiculoBase64] = useState(null);
   const [photoPlaca, setPhotoPlaca] = useState(null);
@@ -16,6 +17,22 @@ export default function RegisterDriverVehicle() {
 
   // Obtener datos de registro pendiente
   const registrationData = JSON.parse(localStorage.getItem("pendingRegistration") || "null");
+  const fromDashboard = location.state?.fromDashboard || sessionStorage.getItem('fromDashboard') === 'true';
+  const fromExistingUser = registrationData?.fromExistingUser || false;
+
+  // Prellenar datos si viene de usuario existente
+  useEffect(() => {
+    if (fromExistingUser && registrationData) {
+      if (registrationData.marca) setMarca(registrationData.marca);
+      if (registrationData.modelo) setModelo(registrationData.modelo);
+      if (registrationData.anio) setAnio(registrationData.anio);
+      if (registrationData.placa) setPlaca(registrationData.placa);
+      if (registrationData.vehiclePhotoUrl) {
+        setPhotoVehiculo(registrationData.vehiclePhotoUrl);
+        setPhotoVehiculoBase64(registrationData.vehiclePhotoUrl);
+      }
+    }
+  }, [fromExistingUser, registrationData]);
 
   const optimizeImage = (file, callback) => {
     const reader = new FileReader();
@@ -94,7 +111,56 @@ export default function RegisterDriverVehicle() {
     }
 
     try {
-      // Crear usuario completo o agregar rol conductor a usuario existente
+      // Si viene del dashboard (usuario existente), usar endpoint de onboarding
+      if (fromExistingUser) {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          alert("Sesión expirada. Por favor inicia sesión nuevamente.");
+          navigate("/auth");
+          return;
+        }
+
+        // Completar el rol conductor usando el endpoint de onboarding
+        const onboardingRes = await fetch(`${API_ONBOARDING_URL}/conductor`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            photoUrl: registrationData?.photoUrl || "",
+            marca,
+            modelo,
+            anio,
+            placa,
+            vehiclePhotoUrl: photoVehiculoBase64
+          })
+        });
+
+        const onboardingData = await onboardingRes.json();
+        if (!onboardingRes.ok) {
+          throw new Error(onboardingData.error || "Error al completar registro de conductor");
+        }
+
+        // Limpiar datos temporales
+        localStorage.removeItem("pendingRegistration");
+        sessionStorage.removeItem('fromDashboard');
+
+        // Actualizar token si viene en la respuesta
+        if (onboardingData.token) {
+          localStorage.setItem("token", onboardingData.token);
+        }
+        localStorage.setItem("role", "conductor");
+        if (onboardingData.nombre) {
+          localStorage.setItem("name", onboardingData.nombre);
+        }
+
+        alert("¡Registro de conductor completado exitosamente!");
+        navigate("/dashboard-conductor");
+        return;
+      }
+
+      // Si es un nuevo registro, usar el endpoint normal
       const res = await fetch(`${API_AUTH_URL}/register-complete-conductor`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -295,9 +361,9 @@ export default function RegisterDriverVehicle() {
         {/* Botón final */}
         <button
           onClick={handleFinish}
-          disabled={!marca || !modelo || !anio || !placa || !photoVehiculo || !photoPlaca}
+          disabled={!marca || !modelo || !anio || !placa || !photoVehiculo || (!fromExistingUser && !photoPlaca)}
           className={`mt-8 w-full py-2 rounded-full font-semibold transition ${
-            marca && modelo && anio && placa && photoVehiculo && photoPlaca
+            marca && modelo && anio && placa && photoVehiculo && (fromExistingUser || photoPlaca)
               ? "bg-[#2A609E] text-white hover:bg-[#224f84]"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
