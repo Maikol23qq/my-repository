@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Upload } from "lucide-react";
-import { API_ONBOARDING_URL, API_AUTH_URL, API_USER_URL } from "../config/api.js";
+import { API_ONBOARDING_URL, API_AUTH_URL } from "../config/api.js";
 
 export default function RegisterPhoto() {
   const [photo, setPhoto] = useState(null);
@@ -101,24 +101,7 @@ export default function RegisterPhoto() {
           return;
         }
 
-        // Actualizar foto de perfil usando el endpoint de usuario autenticado
-        const res = await fetch(`${API_USER_URL}/me`, {
-          method: "PUT",
-          headers: { 
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            photoUrl: photoBase64
-          })
-        });
-
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || "Error al actualizar foto de perfil");
-        }
-
-        // Completar el rol pasajero usando el endpoint de onboarding
+        // Completar el rol pasajero usando el endpoint de onboarding (incluye actualización de foto)
         const onboardingRes = await fetch(`${API_ONBOARDING_URL}/pasajero`, {
           method: "POST",
           headers: { 
@@ -135,21 +118,25 @@ export default function RegisterPhoto() {
           throw new Error(onboardingData.error || "Error al completar registro de pasajero");
         }
 
+        // Guardar todos los datos necesarios en localStorage
+        if (onboardingData.token) {
+          localStorage.setItem("token", onboardingData.token);
+        }
+        localStorage.setItem("role", onboardingData.role || "pasajero");
+        if (onboardingData.nombre) {
+          localStorage.setItem("name", onboardingData.nombre);
+        }
+        if (onboardingData.userId) {
+          localStorage.setItem("userId", onboardingData.userId.toString());
+        }
+
         // Limpiar datos temporales
         localStorage.removeItem("pendingRegistration");
         sessionStorage.removeItem('fromDashboard');
 
-        // Actualizar token si viene en la respuesta
-        if (onboardingData.token) {
-          localStorage.setItem("token", onboardingData.token);
-        }
-        localStorage.setItem("role", "pasajero");
-        if (onboardingData.nombre) {
-          localStorage.setItem("name", onboardingData.nombre);
-        }
-
         alert("¡Registro de pasajero completado exitosamente!");
-        navigate("/dashboard-pasajero");
+        // Usar window.location para forzar recarga completa y asegurar que los datos se carguen
+        window.location.href = "/dashboard-pasajero";
         return;
       }
 
@@ -199,10 +186,15 @@ export default function RegisterPhoto() {
       const fromDashboard = location.state?.fromDashboard || sessionStorage.getItem('fromDashboard') === 'true';
       if (fromDashboard) {
         sessionStorage.removeItem('fromDashboard');
+        // Redirigir al dashboard de pasajero si viene del dashboard
+        window.location.href = "/dashboard-pasajero";
+        return;
       }
       
-      // Redirigir directamente al dashboard después del registro exitoso
-      navigate("/dashboard-pasajero");
+      // Para nuevos usuarios, redirigir al dashboard según el rol elegido
+      // Si el usuario eligió conductor, ya pasó por register-photo y ahora está en register-driver-vehicle
+      // Si eligió pasajero, redirigir directamente al dashboard de pasajero
+      window.location.href = "/dashboard-pasajero";
     } catch (e) {
       console.error("Error al completar registro:", e);
       alert(e.message || "Error al completar el registro. Por favor intenta nuevamente.");

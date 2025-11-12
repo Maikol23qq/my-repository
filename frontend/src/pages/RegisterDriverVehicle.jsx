@@ -142,21 +142,25 @@ export default function RegisterDriverVehicle() {
           throw new Error(onboardingData.error || "Error al completar registro de conductor");
         }
 
+        // Guardar todos los datos necesarios en localStorage
+        if (onboardingData.token) {
+          localStorage.setItem("token", onboardingData.token);
+        }
+        localStorage.setItem("role", onboardingData.role || "conductor");
+        if (onboardingData.nombre) {
+          localStorage.setItem("name", onboardingData.nombre);
+        }
+        if (onboardingData.userId) {
+          localStorage.setItem("userId", onboardingData.userId.toString());
+        }
+
         // Limpiar datos temporales
         localStorage.removeItem("pendingRegistration");
         sessionStorage.removeItem('fromDashboard');
 
-        // Actualizar token si viene en la respuesta
-        if (onboardingData.token) {
-          localStorage.setItem("token", onboardingData.token);
-        }
-        localStorage.setItem("role", "conductor");
-        if (onboardingData.nombre) {
-          localStorage.setItem("name", onboardingData.nombre);
-        }
-
         alert("¡Registro de conductor completado exitosamente!");
-        navigate("/dashboard-conductor");
+        // Usar window.location para forzar recarga completa y asegurar que los datos se carguen
+        window.location.href = "/dashboard-conductor";
         return;
       }
 
@@ -208,13 +212,16 @@ export default function RegisterDriverVehicle() {
       alert(successMessage);
 
       // Si viene del dashboard, volver al dashboard
-      const fromDashboard = sessionStorage.getItem('fromDashboard') === 'true';
+      const fromDashboard = location.state?.fromDashboard || sessionStorage.getItem('fromDashboard') === 'true';
       if (fromDashboard) {
         sessionStorage.removeItem('fromDashboard');
+        // Redirigir al dashboard de conductor si viene del dashboard
+        window.location.href = "/dashboard-conductor";
+        return;
       }
       
-      // Redirigir directamente al dashboard después del registro exitoso
-      navigate("/dashboard-conductor");
+      // Para nuevos usuarios que eligieron conductor, redirigir al dashboard de conductor
+      window.location.href = "/dashboard-conductor";
     } catch (e) {
       console.error("Error al completar registro:", e);
       alert(e.message || "Error al completar el registro. Por favor intenta nuevamente.");
