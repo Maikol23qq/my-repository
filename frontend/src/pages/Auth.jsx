@@ -13,6 +13,7 @@ export default function Auth() {
   const [telefono, setTelefono] = useState("");
   const [idUniversitario, setIdUniversitario] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -63,67 +64,96 @@ export default function Auth() {
         setIdUniversitario("");
       } else {
         // LOGIN - CON DEBUG
+        setLoading(true);
         console.log("🔐 Intentando login con:", { email, password });
         
-        const res = await fetch(`${API_AUTH_URL}/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
+        try {
+          // Crear un AbortController para timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos timeout
+          
+          let res;
+          try {
+            res = await fetch(`${API_AUTH_URL}/login`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password }),
+              signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+          } catch (networkError) {
+            clearTimeout(timeoutId);
+            if (networkError.name === 'AbortError') {
+              throw new Error("La solicitud está tardando demasiado. Por favor verifica tu conexión e intenta nuevamente.");
+            }
+            throw new Error("Error de conexión. Por favor verifica tu internet e intenta nuevamente.");
+          }
 
-        const data = await res.json();
-        console.log("📨 Respuesta completa del login:", data);
+          let data;
+          try {
+            data = await res.json();
+          } catch (jsonError) {
+            throw new Error("Error al procesar la respuesta del servidor. Por favor intenta nuevamente.");
+          }
+          console.log("📨 Respuesta completa del login:", data);
         
-        if (!res.ok) {
-          // Manejar error 429 (Too Many Requests)
-          if (res.status === 429) {
-            const retryAfter = data.retryAfter || 60;
-            throw new Error(data.message || data.error || `Demasiados intentos. Por favor espera ${retryAfter} segundos antes de intentar nuevamente.`);
+          if (!res.ok) {
+            // Manejar error 429 (Too Many Requests)
+            if (res.status === 429) {
+              const retryAfter = data.retryAfter || 60;
+              throw new Error(data.message || data.error || `Demasiados intentos. Por favor espera ${retryAfter} segundos antes de intentar nuevamente.`);
+            }
+            // Si no tiene ningún rol completado, mostrar error y NO redirigir
+            if (res.status === 403 && data?.mustCompleteRegistration) {
+              throw new Error(data.error || "Debes completar el registro primero. Completa el onboarding antes de iniciar sesión.");
+            }
+            // Si necesita onboarding pero viene del registro, redirigir
+            if (res.status === 403 && data?.needOnboarding && !data?.mustCompleteRegistration) {
+              const route = data.nextRoute || "/register-photo";
+              const nextRole = data.preferredRole || "pasajero";
+              navigate(route, { state: { role: nextRole } });
+              return;
+            }
+            // Manejar otros errores comunes
+            if (res.status === 404) {
+              throw new Error("Usuario no encontrado. Verifica tu correo electrónico.");
+            }
+            if (res.status === 401) {
+              throw new Error("Contraseña incorrecta. Intenta nuevamente.");
+            }
+            if (res.status === 400) {
+              throw new Error(data.error || "Datos inválidos. Verifica tu información.");
+            }
+            throw new Error(data.message || data.error || "Error al iniciar sesión. Por favor intenta nuevamente.");
           }
-          // Si no tiene ningún rol completado, mostrar error y NO redirigir
-          if (res.status === 403 && data?.mustCompleteRegistration) {
-            throw new Error(data.error || "Debes completar el registro primero. Completa el onboarding antes de iniciar sesión.");
-          }
-          // Si necesita onboarding pero viene del registro, redirigir
-          if (res.status === 403 && data?.needOnboarding && !data?.mustCompleteRegistration) {
-            const route = data.nextRoute || "/register-photo";
-            const nextRole = data.preferredRole || "pasajero";
-            navigate(route, { state: { role: nextRole } });
-            return;
-          }
-          // Manejar otros errores comunes
-          if (res.status === 404) {
-            throw new Error("Usuario no encontrado. Verifica tu correo electrónico.");
-          }
-          if (res.status === 401) {
-            throw new Error("Contraseña incorrecta. Intenta nuevamente.");
-          }
-          if (res.status === 400) {
-            throw new Error(data.error || "Datos inválidos. Verifica tu información.");
-          }
-          throw new Error(data.message || data.error || "Error al iniciar sesión. Por favor intenta nuevamente.");
-        }
 
-        // Guardar token y datos del usuario
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("role", data.role);
-        localStorage.setItem("name", data.nombre);
-        if (data.userId) {
-          localStorage.setItem("userId", data.userId.toString());
-        }
+          // Guardar token y datos del usuario
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("role", data.role);
+          localStorage.setItem("name", data.nombre);
+          if (data.userId) {
+            localStorage.setItem("userId", data.userId.toString());
+          }
 
-        console.log("🎯 Rol recibido del backend:", data.role);
-        console.log("📍 Redirigiendo a:", data.role === "conductor" ? "/dashboard-conductor" : "/dashboard-pasajero");
+          console.log("🎯 Rol recibido del backend:", data.role);
+          console.log("📍 Redirigiendo a:", data.role === "conductor" ? "/dashboard-conductor" : "/dashboard-pasajero");
 
-        // Redirigir según rol - SIEMPRE al dashboard correspondiente
-        if (data.role === "conductor") {
-          navigate("/dashboard-conductor");
-        } else {
-          navigate("/dashboard-pasajero");
+          // Redirigir según rol - SIEMPRE al dashboard correspondiente
+          if (data.role === "conductor") {
+            navigate("/dashboard-conductor");
+          } else {
+            navigate("/dashboard-pasajero");
+          }
+        } catch (fetchError) {
+          // Re-lanzar el error para que sea manejado por el catch externo
+          throw fetchError;
+        } finally {
+          setLoading(false);
         }
       }
     } catch (err) {
       setError(err.message);
+      setLoading(false);
     }
   };
 
@@ -265,9 +295,20 @@ export default function Auth() {
 
           <button
             type="submit"
-            className="bg-[#2A609E] text-white font-semibold py-2 rounded-full mt-4 hover:bg-[#224f84] transition"
+            disabled={loading}
+            className={`bg-[#2A609E] text-white font-semibold py-2 rounded-full mt-4 transition flex items-center justify-center gap-2 ${
+              loading 
+                ? "opacity-70 cursor-not-allowed" 
+                : "hover:bg-[#224f84]"
+            }`}
           >
-            {isRegister ? "Siguiente" : "Iniciar sesión"}
+            {loading && (
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            )}
+            {loading ? "Cargando..." : isRegister ? "Siguiente" : "Iniciar sesión"}
           </button>
         </form>
       </div>
