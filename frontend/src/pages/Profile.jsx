@@ -333,37 +333,69 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Información del vehículo (solo si es conductor) */}
-        {userData?.rolesCompleted?.conductor && userData?.vehicle && (
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <h2 className="text-2xl font-bold mb-6 text-gray-900">Información del Vehículo</h2>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Marca</label>
-                <div className="border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 text-gray-700">
-                  {userData.vehicle.marca || "No especificada"}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Modelo</label>
-                <div className="border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 text-gray-700">
-                  {userData.vehicle.modelo || "No especificado"}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Año</label>
-                <div className="border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 text-gray-700">
-                  {userData.vehicle.anio || "No especificado"}
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Placa</label>
-                <div className="border border-gray-300 rounded-xl px-4 py-3 bg-gray-50 text-gray-700">
-                  {userData.vehicle.placa || "No especificada"}
-                </div>
-              </div>
+        {/* Información de vehículos (solo si es conductor) */}
+        {userData?.rolesCompleted?.conductor && (
+          <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Mis Vehículos</h2>
+              <button
+                onClick={() => navigate("/register-driver-vehicle", { state: { fromDashboard: true } })}
+                className="bg-[#2A609E] text-white px-4 py-2 rounded-xl font-semibold hover:bg-[#224f84] transition"
+              >
+                + Añadir Vehículo
+              </button>
             </div>
+            
+            {userData.vehicles && userData.vehicles.length > 0 ? (
+              <div className="space-y-4">
+                {userData.vehicles.map((vehicle) => (
+                  <div key={vehicle._id} className="border border-gray-200 rounded-xl p-6 bg-gray-50">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Marca</label>
+                        <div className="border border-gray-300 rounded-xl px-4 py-3 bg-white text-gray-700">
+                          {vehicle.marca || "No especificada"}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Modelo</label>
+                        <div className="border border-gray-300 rounded-xl px-4 py-3 bg-white text-gray-700">
+                          {vehicle.modelo || "No especificado"}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Año</label>
+                        <div className="border border-gray-300 rounded-xl px-4 py-3 bg-white text-gray-700">
+                          {vehicle.anio || "No especificado"}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Placa</label>
+                        <div className="border border-gray-300 rounded-xl px-4 py-3 bg-white text-gray-700">
+                          {vehicle.placa || "No especificada"}
+                        </div>
+                      </div>
+                      {vehicle.photoUrl && (
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Foto del Vehículo</label>
+                          <img src={vehicle.photoUrl} alt="Vehículo" className="w-32 h-24 object-cover rounded-lg border border-gray-300" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 border-2 border-dashed border-gray-300 rounded-xl">
+                <p className="text-gray-500 mb-4">No tienes vehículos registrados</p>
+                <button
+                  onClick={() => navigate("/register-driver-vehicle", { state: { fromDashboard: true } })}
+                  className="bg-[#2A609E] text-white px-6 py-2 rounded-xl font-semibold hover:bg-[#224f84] transition"
+                >
+                  Agregar mi primer vehículo
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

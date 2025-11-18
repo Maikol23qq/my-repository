@@ -26,9 +26,15 @@ export default function Auth() {
         // Validaciones básicas
         const isValidEmail = (v) => /.+@.+\..+/.test(v);
         const isValidPassword = (v) => typeof v === 'string' && v.length >= 6;
+        const isValidUnisabanaEmail = (v) => v.endsWith('@unisabana.edu.co');
+        const isValidPhone = (v) => !v || /^\d{10}$/.test(v.trim());
 
         if (!isValidEmail(email)) {
           setError("Email inválido");
+          return;
+        }
+        if (!isValidUnisabanaEmail(email)) {
+          setError("El correo debe ser de la Universidad de La Sabana (@unisabana.edu.co)");
           return;
         }
         if (!isValidPassword(password)) {
@@ -37,6 +43,10 @@ export default function Auth() {
         }
         if (!nombre || !nombre.trim()) {
           setError("El nombre es obligatorio");
+          return;
+        }
+        if (telefono && !isValidPhone(telefono)) {
+          setError("El teléfono debe tener exactamente 10 dígitos");
           return;
         }
 

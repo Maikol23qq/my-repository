@@ -15,6 +15,7 @@ export default function DashboardConductor() {
   const [time, setTime] = useState("");
   const [price, setPrice] = useState("");
   const [seats, setSeats] = useState(1);
+  const [selectedVehicleId, setSelectedVehicleId] = useState("");
   const [myTrips, setMyTrips] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -330,6 +331,10 @@ export default function DashboardConductor() {
       setError("Por favor ingresa al menos 1 asiento");
       return;
     }
+    if (userData?.vehicles && userData.vehicles.length > 0 && !selectedVehicleId) {
+      setError("Por favor selecciona un vehículo");
+      return;
+    }
 
     // Validar que la fecha/hora no sea en el pasado
     const departureTime = new Date(`${date}T${time}:00`);
@@ -354,7 +359,8 @@ export default function DashboardConductor() {
           route: route.trim(),
           departureTime: departureTime.toISOString(), 
           price: Number(price), 
-          seatsTotal: Number(seats) 
+          seatsTotal: Number(seats),
+          vehicleId: selectedVehicleId || null
         })
       });
       
@@ -372,6 +378,7 @@ export default function DashboardConductor() {
       setTime("");
       setPrice("");
       setSeats(1);
+      setSelectedVehicleId("");
       
       // Recargar viajes
       await loadMyTrips();
@@ -527,6 +534,24 @@ export default function DashboardConductor() {
                 className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none" 
               />
             </div>
+            {userData?.vehicles && userData.vehicles.length > 0 && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Vehículo *</label>
+                <select
+                  value={selectedVehicleId}
+                  onChange={e => setSelectedVehicleId(e.target.value)}
+                  className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none bg-white"
+                  required
+                >
+                  <option value="">Selecciona un vehículo</option>
+                  {userData.vehicles.map((vehicle) => (
+                    <option key={vehicle._id} value={vehicle._id}>
+                      {vehicle.marca} {vehicle.modelo} ({vehicle.placa}) - {vehicle.anio}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
           <button 
             onClick={createTrip} 

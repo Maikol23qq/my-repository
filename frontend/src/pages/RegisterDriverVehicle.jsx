@@ -8,8 +8,8 @@ export default function RegisterDriverVehicle() {
   const location = useLocation();
   const [photoVehiculo, setPhotoVehiculo] = useState(null);
   const [photoVehiculoBase64, setPhotoVehiculoBase64] = useState(null);
-  const [photoPlaca, setPhotoPlaca] = useState(null);
-  const [photoPlacaBase64, setPhotoPlacaBase64] = useState(null);
+  const [photoSOAT, setPhotoSOAT] = useState(null);
+  const [photoSOATBase64, setPhotoSOATBase64] = useState(null);
   const [marca, setMarca] = useState("");
   const [modelo, setModelo] = useState("");
   const [anio, setAnio] = useState("");
@@ -81,12 +81,12 @@ export default function RegisterDriverVehicle() {
     }
   };
 
-  const handlePhotoPlacaUpload = (e) => {
+  const handlePhotoSOATUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
       optimizeImage(file, (base64) => {
-        setPhotoPlacaBase64(base64);
-        setPhotoPlaca(base64); // Usar la imagen optimizada para preview
+        setPhotoSOATBase64(base64);
+        setPhotoSOAT(base64); // Usar la imagen optimizada para preview
       });
     }
   };
@@ -100,6 +100,11 @@ export default function RegisterDriverVehicle() {
 
     if (!photoVehiculoBase64) {
       alert("Por favor sube la foto del vehículo");
+      return;
+    }
+
+    if (!fromExistingUser && !photoSOATBase64) {
+      alert("Por favor sube la foto del SOAT");
       return;
     }
 
@@ -133,7 +138,8 @@ export default function RegisterDriverVehicle() {
             modelo,
             anio,
             placa,
-            vehiclePhotoUrl: photoVehiculoBase64
+            vehiclePhotoUrl: photoVehiculoBase64,
+            soatPhotoUrl: photoSOATBase64 || ""
           })
         });
 
@@ -168,15 +174,16 @@ export default function RegisterDriverVehicle() {
       const res = await fetch(`${API_AUTH_URL}/register-complete-conductor`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...registrationData,
-          photoUrl: registrationData.photoUrl || "",
-          marca,
-          modelo,
-          anio,
-          placa,
-          vehiclePhotoUrl: photoVehiculoBase64
-        })
+          body: JSON.stringify({
+            ...registrationData,
+            photoUrl: registrationData.photoUrl || "",
+            marca,
+            modelo,
+            anio,
+            placa,
+            vehiclePhotoUrl: photoVehiculoBase64,
+            soatPhotoUrl: photoSOATBase64 || ""
+          })
       });
 
       const data = await res.json();
@@ -342,35 +349,37 @@ export default function RegisterDriverVehicle() {
           </label>
         </div>
 
-        {/* 🔹 Foto de la placa */}
-        <div className="mt-8 text-center">
-          <p className="text-sm font-semibold text-gray-700 mb-2">Foto de la placa</p>
-          <label className="relative cursor-pointer flex flex-col items-center justify-center w-40 h-40 mx-auto border-4 border-dashed border-[#2A609E] rounded-full bg-gray-100 hover:bg-gray-200 transition overflow-hidden">
-            {photoPlaca ? (
-              <img
-                src={photoPlaca}
-                alt="Placa"
-                className="w-full h-full object-cover rounded-full"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center text-gray-500 text-center px-3">
-                <Upload className="w-6 h-6 mb-1" />
-                <span className="text-xs font-medium">Subir foto</span>
-                <span className="text-[10px] font-medium leading-tight">
-                  Foto clara de la placa
-                </span>
-              </div>
-            )}
-            <input type="file" className="hidden" accept="image/*" onChange={handlePhotoPlacaUpload} />
-          </label>
-        </div>
+        {/* 🔹 Foto del SOAT */}
+        {!fromExistingUser && (
+          <div className="mt-8 text-center">
+            <p className="text-sm font-semibold text-gray-700 mb-2">Foto del SOAT</p>
+            <label className="relative cursor-pointer flex flex-col items-center justify-center w-40 h-40 mx-auto border-4 border-dashed border-[#2A609E] rounded-full bg-gray-100 hover:bg-gray-200 transition overflow-hidden">
+              {photoSOAT ? (
+                <img
+                  src={photoSOAT}
+                  alt="SOAT"
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center text-gray-500 text-center px-3">
+                  <Upload className="w-6 h-6 mb-1" />
+                  <span className="text-xs font-medium">Subir foto</span>
+                  <span className="text-[10px] font-medium leading-tight">
+                    Foto clara del SOAT
+                  </span>
+                </div>
+              )}
+              <input type="file" className="hidden" accept="image/*" onChange={handlePhotoSOATUpload} />
+            </label>
+          </div>
+        )}
 
         {/* Botón final */}
         <button
           onClick={handleFinish}
-          disabled={!marca || !modelo || !anio || !placa || !photoVehiculo || (!fromExistingUser && !photoPlaca)}
+          disabled={!marca || !modelo || !anio || !placa || !photoVehiculo || (!fromExistingUser && !photoSOAT)}
           className={`mt-8 w-full py-2 rounded-full font-semibold transition ${
-            marca && modelo && anio && placa && photoVehiculo && (fromExistingUser || photoPlaca)
+            marca && modelo && anio && placa && photoVehiculo && (fromExistingUser || photoSOAT)
               ? "bg-[#2A609E] text-white hover:bg-[#224f84]"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
