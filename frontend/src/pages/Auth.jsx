@@ -22,8 +22,8 @@ export default function Auth() {
 
     try {
       if (isRegister) {
-        // REGISTRO - Solo guardar datos temporalmente, NO crear usuario aún
-        // Validaciones básicas
+        
+      
         const isValidEmail = (v) => /.+@.+\..+/.test(v);
         const isValidPassword = (v) => typeof v === 'string' && v.length >= 6;
         const isValidUnisabanaEmail = (v) => v.endsWith('@unisabana.edu.co');
