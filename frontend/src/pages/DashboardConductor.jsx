@@ -10,6 +10,7 @@ export default function DashboardConductor() {
   
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [route, setRoute] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [price, setPrice] = useState("");
@@ -26,6 +27,7 @@ export default function DashboardConductor() {
   const [editForm, setEditForm] = useState({
     from: "",
     to: "",
+    route: "",
     date: "",
     time: "",
     price: "",
@@ -238,6 +240,7 @@ export default function DashboardConductor() {
     setEditForm({
       from: trip.from,
       to: trip.to,
+      route: trip.route || "",
       date: dateStr,
       time: timeStr,
       price: trip.price.toString(),
@@ -283,6 +286,7 @@ export default function DashboardConductor() {
         body: JSON.stringify({
           from: editForm.from.trim(),
           to: editForm.to.trim(),
+          route: editForm.route.trim(),
           departureTime: departureTime.toISOString(),
           price: Number(editForm.price),
           seatsTotal: Number(editForm.seats)
@@ -347,6 +351,7 @@ export default function DashboardConductor() {
         body: JSON.stringify({ 
           from: from.trim(), 
           to: to.trim(), 
+          route: route.trim(),
           departureTime: departureTime.toISOString(), 
           price: Number(price), 
           seatsTotal: Number(seats) 
@@ -362,6 +367,7 @@ export default function DashboardConductor() {
       // Limpiar formulario
       setFrom("");
       setTo("");
+      setRoute("");
       setDate("");
       setTime("");
       setPrice("");
@@ -379,11 +385,21 @@ export default function DashboardConductor() {
   }
 
   // Calcular estadísticas
-  const totalTrips = myTrips.length;
-  const totalPassengers = myTrips.reduce((sum, trip) => {
-    return sum + (trip.seatsTotal - trip.seatsAvailable);
+  const totalTrips = myTrips.length; // Total de viajes creados (incluye todos)
+  
+  // Pasajeros reservados: contar todos los pasajeros con booking aceptado en viajes actuales
+  const reservedPassengers = myTrips.reduce((sum, trip) => {
+    const acceptedBookings = trip.bookings?.filter(b => b.status === "accepted") || [];
+    return sum + acceptedBookings.length;
   }, 0);
-  const averageRating = 4.8; // Por ahora estático, se puede calcular después
+  
+  // Pasajeros transportados: solo de viajes completados (departureTime en el pasado)
+  const now = new Date();
+  const completedTrips = myTrips.filter(trip => new Date(trip.departureTime) < now);
+  const transportedPassengers = completedTrips.reduce((sum, trip) => {
+    const acceptedBookings = trip.bookings?.filter(b => b.status === "accepted") || [];
+    return sum + acceptedBookings.length;
+  }, 0);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -459,6 +475,16 @@ export default function DashboardConductor() {
                 className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none" 
               />
             </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ruta (Opcional)</label>
+              <input 
+                value={route} 
+                onChange={e=>setRoute(e.target.value)} 
+                placeholder="Ej: Parada 1, Parada 2, Parada 3..." 
+                className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none" 
+              />
+              <p className="text-xs text-gray-500 mt-1">Indica las paradas o lugares por donde pasarás</p>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
               <input 
@@ -515,16 +541,16 @@ export default function DashboardConductor() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-6 text-center">
             <div className="text-3xl font-bold text-gray-800 mb-2">{totalTrips}</div>
-            <div className="text-gray-600">Viajes publicados</div>
+            <div className="text-gray-600">Viajes creados</div>
           </div>
           
           <div className="bg-white rounded-lg shadow-sm p-6 text-center">
-            <div className="text-3xl font-bold text-gray-800 mb-2">{averageRating}</div>
-            <div className="text-gray-600">Calificación promedio</div>
+            <div className="text-3xl font-bold text-gray-800 mb-2">{reservedPassengers}</div>
+            <div className="text-gray-600">Pasajeros reservados</div>
           </div>
           
           <div className="bg-white rounded-lg shadow-sm p-6 text-center">
-            <div className="text-3xl font-bold text-gray-800 mb-2">{totalPassengers}</div>
+            <div className="text-3xl font-bold text-gray-800 mb-2">{transportedPassengers}</div>
             <div className="text-gray-600">Pasajeros transportados</div>
           </div>
         </div>
@@ -576,6 +602,12 @@ export default function DashboardConductor() {
                               alt="Vehículo"
                               className="w-20 h-14 rounded object-cover border border-gray-300"
                             />
+                          </div>
+                        )}
+                        {trip.route && (
+                          <div className="text-sm text-gray-600 mb-2">
+                            <span className="font-medium">📍 Ruta: </span>
+                            <span>{trip.route}</span>
                           </div>
                         )}
                         <div className="text-sm text-gray-600 mb-1">
@@ -848,6 +880,16 @@ export default function DashboardConductor() {
                       placeholder="Punto de llegada" 
                       className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none" 
                     />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ruta (Opcional)</label>
+                    <input 
+                      value={editForm.route} 
+                      onChange={e => setEditForm({ ...editForm, route: e.target.value })} 
+                      placeholder="Ej: Parada 1, Parada 2, Parada 3..." 
+                      className="w-full border rounded-xl px-4 py-2 focus:ring-2 focus:ring-[#2A609E] outline-none" 
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Indica las paradas o lugares por donde pasarás</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>

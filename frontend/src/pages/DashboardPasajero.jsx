@@ -377,6 +377,12 @@ export default function DashboardPasajero() {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="font-semibold text-lg mb-2">{trip.from} → {trip.to}</div>
+                          {trip.route && (
+                            <div className="text-sm text-gray-600 mb-2">
+                              <span className="font-medium">📍 Ruta: </span>
+                              <span>{trip.route}</span>
+                            </div>
+                          )}
                           {trip.driver && (
                             <div className="flex items-center gap-2 mb-2">
                               {trip.driver.photoUrl && (
@@ -582,6 +588,12 @@ export default function DashboardPasajero() {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="font-semibold text-lg mb-2">{trip.from} → {trip.to}</div>
+                          {trip.route && (
+                            <div className="text-sm text-gray-600 mb-2">
+                              <span className="font-medium">📍 Ruta: </span>
+                              <span>{trip.route}</span>
+                            </div>
+                          )}
                           {trip.driver && (
                             <div className="flex items-center gap-2 mb-2">
                               {trip.driver.photoUrl && (
